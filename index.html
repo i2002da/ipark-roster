@@ -245,7 +245,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg-page);color:var(-
     <button class="btn btn-site-manage" id="btnSiteMgr">🏗 현장 관리</button>
     <button class="btn btn-out" id="btnHol">📅 공휴일 관리</button>
     <div style="font-size:10px;color:var(--tx4);text-align:right;line-height:1.5;padding:0 2px;border-left:1px solid var(--bd-m);padding-left:10px">
-      <div style="color:var(--acc2);font-weight:700;letter-spacing:.3px">v2.5</div>
+      <div style="color:var(--acc2);font-weight:700;letter-spacing:.3px">v2.6</div>
       <div style="color:var(--tx4)">2025-05-02</div>
     </div>
     <button class="theme-btn" id="btnTheme">
@@ -445,11 +445,15 @@ function escHtml(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').rep
 
 function getEmpsForMonth(sid,y,m){
   const k=ymKey(y,m);
-  return (S.empSnaps[sid]&&S.empSnaps[sid][k])||S.employees[sid]||[];
+  const raw=(S.empSnaps[sid]&&S.empSnaps[sid][k])||S.employees[sid]||[];
+  // Firebase 복원 후 배열이 아닌 객체로 올 수 있으므로 항상 변환
+  return Array.isArray(raw) ? raw : toArray(raw);
 }
 function propagateForward(sid){
   const ck=ymKey(S.year,S.month);
   Object.keys(S.empSnaps[sid]).forEach(k=>{if(k>=ck)delete S.empSnaps[sid][k];});
+  // employees[sid]가 배열인지 보장 (Firebase 복원 직후 호출될 수 있음)
+  if(!Array.isArray(S.employees[sid])) S.employees[sid]=toArray(S.employees[sid]);
   S.empSnaps[sid][ck]=JSON.parse(JSON.stringify(S.employees[sid]));
 }
 
@@ -528,11 +532,45 @@ function stateToJson(){
     notices:S.notices,     nextId:S.nextId
   });
 }
+// Firebase는 배열을 {0:{...},1:{...}} 객체로 저장/복원함
+// → 반드시 Array로 변환해야 emps.map() 등이 정상 동작
+function toArray(v){
+  if(!v) return [];
+  if(Array.isArray(v)) return v;
+  // 객체를 숫자 인덱스 순으로 정렬하여 배열로 변환
+  return Object.keys(v)
+    .sort((a,b)=>+a - +b)
+    .map(k=>v[k]);
+}
+// employees/empSnaps 내 모든 현장 배열 정규화
+function normalizeEmployees(obj){
+  if(!obj) return {};
+  const out={};
+  Object.keys(obj).forEach(sid=>{
+    out[sid]=toArray(obj[sid]);
+  });
+  return out;
+}
+// empSnaps: {siteId: {ymKey: [배열]}} 구조
+function normalizeEmpSnaps(obj){
+  if(!obj) return {};
+  const out={};
+  Object.keys(obj).forEach(sid=>{
+    out[sid]={};
+    const snaps=obj[sid]||{};
+    Object.keys(snaps).forEach(ym=>{
+      out[sid][ym]=toArray(snaps[ym]);
+    });
+  });
+  return out;
+}
+
 function applyRemote(d){
   if(d.sites)     { S.sites=d.sites; SITES=JSON.parse(JSON.stringify(d.sites)); }
   if(d.nextSiteId)S.nextSiteId=d.nextSiteId;
-  if(d.employees) S.employees = d.employees;
-  if(d.empSnaps)  S.empSnaps  = d.empSnaps;
+  // 배열 정규화: Firebase 복원 시 배열→객체 변환 대응
+  if(d.employees) S.employees = normalizeEmployees(d.employees);
+  if(d.empSnaps)  S.empSnaps  = normalizeEmpSnaps(d.empSnaps);
   if(d.offDays)   S.offDays   = d.offDays;
   if(d.absDays)   S.absDays   = d.absDays;
   if(d.notes)     S.notes     = d.notes;
