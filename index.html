@@ -198,42 +198,31 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg-page);color:var(-
 .roster td{border-right:1px solid var(--bd-s);border-bottom:1px solid var(--bd-s);text-align:center;padding:3px 2px;background:var(--bg-cell)}
 .roster tbody tr:hover td{background:#e8f4fd}
 [data-theme="dark"] .roster tbody tr:hover td{background:#162840}
-.c-no{width:30px;color:var(--tx4);font-size:11px}
-.c-dept{width:48px;font-size:11px}
-.c-name{width:72px;font-weight:500;color:var(--tx2);text-align:center!important;padding-left:0!important;cursor:pointer}
-.c-name:hover{color:#1a6fc4}
-.c-ord{width:24px;padding:0!important;cursor:grab}
+/* ── 고정 열 너비 확정 (px 단위 고정) ── */
+.c-ord{min-width:26px;width:26px;padding:0!important;cursor:grab}
 .c-ord:active{cursor:grabbing}
-/* ── 좌측 열 고정 (sticky columns) ── */
-/* 핸들 열: left=0 */
-th.c-ord-h, td.c-ord{
-  position:sticky;left:0;z-index:2;
-  background:#0a2342;
-}
+.c-no{min-width:32px;width:32px;color:var(--tx4);font-size:11px}
+.c-dept{min-width:50px;width:50px;font-size:11px}
+.c-name{min-width:74px;width:74px;font-weight:500;color:var(--tx2);text-align:center!important;padding:0!important;cursor:pointer}
+.c-name:hover{color:#1a6fc4}
+/* ── 좌측 고정 열 sticky ── */
+/* 핸들(0px) */
+th.c-ord-h,td.c-ord{position:sticky;left:0;z-index:2;background:#0a2342}
 [data-theme="dark"] th.c-ord-h{background:#0a1628}
-td.c-ord{background:var(--bg-cell);box-shadow:2px 0 4px rgba(10,35,66,.08)}
-/* No 열: left=24 */
-th.c-no-h, td.c-no{
-  position:sticky;left:24px;z-index:2;
-  background:#0a2342;
-}
+td.c-ord{background:var(--bg-cell)}
+/* No(26px) */
+th.c-no-h,td.c-no{position:sticky;left:26px;z-index:2;background:#0a2342}
 [data-theme="dark"] th.c-no-h{background:#0a1628}
 td.c-no{background:var(--bg-cell)}
-/* 구분 열: left=54 */
-th.c-dept-h, td.c-dept{
-  position:sticky;left:54px;z-index:2;
-  background:#0a2342;
-}
+/* 구분(58px) */
+th.c-dept-h,td.c-dept{position:sticky;left:58px;z-index:2;background:#0a2342}
 [data-theme="dark"] th.c-dept-h{background:#0a1628}
 td.c-dept{background:var(--bg-cell)}
-/* 성명 열: left=102 */
-th.c-name-h, td.c-name{
-  position:sticky;left:102px;z-index:2;
-  background:#0a2342;
-}
+/* 성명(108px) — 오른쪽에 그림자로 경계 표시 */
+th.c-name-h,td.c-name{position:sticky;left:108px;z-index:2;background:#0a2342}
 [data-theme="dark"] th.c-name-h{background:#0a1628}
-td.c-name{background:var(--bg-cell);box-shadow:3px 0 6px rgba(10,35,66,.10)}
-/* 호버 시 고정 셀 배경도 변경 */
+td.c-name{background:var(--bg-cell);box-shadow:3px 0 5px rgba(10,35,66,.12)}
+/* 호버 */
 .roster tbody tr:hover td.c-ord,
 .roster tbody tr:hover td.c-no,
 .roster tbody tr:hover td.c-dept,
@@ -242,15 +231,14 @@ td.c-name{background:var(--bg-cell);box-shadow:3px 0 6px rgba(10,35,66,.10)}
 [data-theme="dark"] .roster tbody tr:hover td.c-no,
 [data-theme="dark"] .roster tbody tr:hover td.c-dept,
 [data-theme="dark"] .roster tbody tr:hover td.c-name{background:#162840}
-/* 근무인원수 행 고정 셀 */
+/* 근무인원수 행 고정 */
 .sum-row td.c-ord,.sum-row td.c-no,.sum-row td.c-dept,.sum-row td.c-name{
-  background:var(--bg-sum)!important;
-  position:sticky;z-index:2;
+  background:var(--bg-sum)!important;position:sticky;z-index:2;
 }
 .sum-row td.c-ord{left:0}
-.sum-row td.c-no{left:24px}
-.sum-row td.c-dept{left:54px}
-.sum-row td.c-name{left:102px}
+.sum-row td.c-no{left:26px}
+.sum-row td.c-dept{left:58px}
+.sum-row td.c-name{left:108px;box-shadow:3px 0 5px rgba(10,35,66,.12)}
 .ord-btn{display:flex;flex-direction:column;gap:1px;align-items:center;justify-content:center;height:30px;opacity:.35}
 .ord-btn:hover{opacity:.9}
 .ord-btn span{font-size:10px;line-height:1;color:var(--tx3)}
@@ -397,7 +385,7 @@ thead th.c-tot-h,thead th.c-note-h{position:sticky;z-index:3;background:#0a2342;
     <button class="btn btn-site-manage" id="btnSiteMgr">🏗 현장 관리</button>
     <button class="btn btn-out" id="btnHol" style="color:rgba(255,255,255,.85);border-color:rgba(255,255,255,.28);background:rgba(255,255,255,.1)">📅 공휴일 관리</button>
     <div style="font-size:10px;color:rgba(255,255,255,.6);text-align:right;line-height:1.5;padding:0 2px;border-left:1px solid rgba(255,255,255,.2);padding-left:10px">
-      <div style="color:rgba(255,255,255,.9);font-weight:700;letter-spacing:.3px">v3.0</div>
+      <div style="color:rgba(255,255,255,.9);font-weight:700;letter-spacing:.3px">v3.1</div>
       <div style="color:rgba(255,255,255,.55)">2025-05-02</div>
     </div>
     <button class="theme-btn" id="btnTheme">
@@ -994,16 +982,16 @@ function renderTable(){
       <table class="roster">
         <thead>
           <tr>
-            <th class="c-ord-h" style="width:24px;top:0"></th>
-            <th class="c-no c-no-h" rowspan="2" style="top:0">No</th>
-            <th class="c-dept c-dept-h" rowspan="2" style="top:0">구분</th>
-            <th class="c-name c-name-h" rowspan="2" style="top:0">성명</th>
+            <th class="c-ord-h" style="min-width:26px;width:26px;top:0;left:0"></th>
+            <th class="c-no c-no-h" rowspan="2" style="min-width:32px;width:32px;top:0;left:26px">No</th>
+            <th class="c-dept c-dept-h" rowspan="2" style="min-width:50px;width:50px;top:0;left:58px">구분</th>
+            <th class="c-name c-name-h" rowspan="2" style="min-width:74px;width:74px;top:0;left:108px">성명</th>
             ${DI.map(x=>`<th class="${thC(x.t)}"${S.holidays[x.k]?` title="${S.holidays[x.k]}"`:''}>${x.d}</th>`).join('')}
-            <th class="c-tot c-tot-h" rowspan="2" style="right:90px">휴무계</th>
-            <th class="c-note c-note-h" rowspan="2" style="text-align:center">비고</th>
+            <th class="c-tot c-tot-h" rowspan="2" style="top:0">휴무계</th>
+            <th class="c-note c-note-h" rowspan="2" style="top:0;text-align:center">비고</th>
           </tr>
           <tr>
-            <th class="c-ord-h" style="width:24px;top:38px"></th>
+            <th class="c-ord-h" style="min-width:26px;width:26px;top:38px;left:0"></th>
             ${DI.map(x=>`<th class="${thC(x.t)}" style="font-size:9px;padding:3px 1px">${WD[x.w]}</th>`).join('')}
           </tr>
         </thead>
@@ -1018,10 +1006,10 @@ function renderTable(){
             const cnt=Object.keys(eo).filter(k=>k.startsWith(monthPrefix)).length;
             const nv=nts[eid]||'';
             return `<tr draggable="true" data-idx="${i}" data-eid="${eid}">
-              <td class="c-ord" title="드래그 순서변경"><div class="ord-btn"><span>▲</span><span style="font-size:8px;color:var(--tx4)">⠿</span><span>▼</span></div></td>
-              <td class="c-no">${i+1}</td>
-              <td class="c-dept"><span class="dbdg">${emp.dept||''}</span></td>
-              <td class="c-name" data-action="${!isPast?'openEditEmp':''}" data-sid="${S.site}" data-eid="${eid}" title="${!isPast?'클릭 → 수정':''}" style="text-align:center">${emp.name}</td>
+              <td class="c-ord" style="min-width:26px;width:26px;left:0" title="드래그 순서변경"><div class="ord-btn"><span>▲</span><span style="font-size:8px;color:var(--tx4)">⠿</span><span>▼</span></div></td>
+              <td class="c-no" style="min-width:32px;width:32px;left:26px">${i+1}</td>
+              <td class="c-dept" style="min-width:50px;width:50px;left:58px"><span class="dbdg">${emp.dept||''}</span></td>
+              <td class="c-name" style="min-width:74px;width:74px;left:108px;text-align:center" data-action="${!isPast?'openEditEmp':''}" data-sid="${S.site}" data-eid="${eid}" title="${!isPast?'클릭 → 수정':''}">${emp.name}</td>
               ${DI.map(x=>{
                 const hasOff=!!(eo[x.k]);   // eo 자체가 이미 fallback 처리됨
                 const absType=ea[x.k]||'';
@@ -1037,10 +1025,10 @@ function renderTable(){
             </tr>`;
           }).join('')}
           <tr class="sum-row">
-            <td class="c-ord"></td>
-            <td class="c-no"></td>
-            <td class="c-dept"></td>
-            <td class="c-name" style="color:var(--tx3);font-size:11px;font-weight:600">근무인원수</td>
+            <td class="c-ord" style="min-width:26px;width:26px;left:0"></td>
+            <td class="c-no" style="min-width:32px;width:32px;left:26px"></td>
+            <td class="c-dept" style="min-width:50px;width:50px;left:58px"></td>
+            <td class="c-name" style="min-width:74px;width:74px;left:108px;color:var(--tx3);font-size:11px;font-weight:600">근무인원수</td>
             ${DI.map((x,i)=>`<td class="${snC(x.t)}">${wCnt[i]}</td>`).join('')}
             <td></td><td></td>
           </tr>
