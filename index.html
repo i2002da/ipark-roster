@@ -179,19 +179,78 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg-page);color:var(-
 .ld-off::after{content:'●';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--off-dot);font-size:8px;line-height:1}
 
 /* 테이블 */
-.tbl-wrap{overflow-x:auto;border:1px solid var(--bd-s);border-radius:10px}
-.roster{width:100%;border-collapse:collapse;font-size:12px;min-width:900px}
-.roster th{background:#0a2342;color:#b8d4f0;font-weight:600;padding:8px 5px;text-align:center;border-bottom:1px solid #1a3a5c;border-right:1px solid #1a3a5c;white-space:nowrap}
-[data-theme="dark"] .roster th{background:#0a1628;color:#7aadd4;border-color:#1e3550}
+.tbl-wrap{overflow:auto;border:1px solid var(--bd-s);border-radius:10px;max-height:calc(100vh - 220px)}
+.roster{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;min-width:900px}
+/* ── 헤더 행 세로 고정 (sticky thead) ── */
+.roster thead th{
+  position:sticky;z-index:3;
+  background:#0a2342;color:#b8d4f0;font-weight:600;
+  padding:8px 5px;text-align:center;white-space:nowrap;
+  border-bottom:2px solid #1e5080;border-right:1px solid #1a3a5c;
+}
+[data-theme="dark"] .roster thead th{background:#0a1628;color:#7aadd4;border-color:#1e3550}
+/* 1행: top:0 */
+.roster thead tr:first-child th{top:0}
+/* 2행(요일): top = 1행 높이(38px) */
+.roster thead tr:nth-child(2) th{top:38px;border-bottom:1px solid #1a3a5c}
+/* tbody td 기본 */
+.roster td{border-right:1px solid var(--bd-s);border-bottom:1px solid var(--bd-s);text-align:center;padding:3px 2px;background:var(--bg-cell)}
 .roster td{border-right:1px solid var(--bd-s);border-bottom:1px solid var(--bd-s);text-align:center;padding:3px 2px;background:var(--bg-cell)}
 .roster tbody tr:hover td{background:#e8f4fd}
 [data-theme="dark"] .roster tbody tr:hover td{background:#162840}
 .c-no{width:30px;color:var(--tx4);font-size:11px}
-.c-dept{width:44px;font-size:11px}
-.c-name{width:68px;font-weight:500;color:var(--tx2);text-align:left;padding-left:8px!important;cursor:pointer}
+.c-dept{width:48px;font-size:11px}
+.c-name{width:72px;font-weight:500;color:var(--tx2);text-align:center!important;padding-left:0!important;cursor:pointer}
 .c-name:hover{color:#1a6fc4}
 .c-ord{width:24px;padding:0!important;cursor:grab}
 .c-ord:active{cursor:grabbing}
+/* ── 좌측 열 고정 (sticky columns) ── */
+/* 핸들 열: left=0 */
+th.c-ord-h, td.c-ord{
+  position:sticky;left:0;z-index:2;
+  background:#0a2342;
+}
+[data-theme="dark"] th.c-ord-h{background:#0a1628}
+td.c-ord{background:var(--bg-cell);box-shadow:2px 0 4px rgba(10,35,66,.08)}
+/* No 열: left=24 */
+th.c-no-h, td.c-no{
+  position:sticky;left:24px;z-index:2;
+  background:#0a2342;
+}
+[data-theme="dark"] th.c-no-h{background:#0a1628}
+td.c-no{background:var(--bg-cell)}
+/* 구분 열: left=54 */
+th.c-dept-h, td.c-dept{
+  position:sticky;left:54px;z-index:2;
+  background:#0a2342;
+}
+[data-theme="dark"] th.c-dept-h{background:#0a1628}
+td.c-dept{background:var(--bg-cell)}
+/* 성명 열: left=102 */
+th.c-name-h, td.c-name{
+  position:sticky;left:102px;z-index:2;
+  background:#0a2342;
+}
+[data-theme="dark"] th.c-name-h{background:#0a1628}
+td.c-name{background:var(--bg-cell);box-shadow:3px 0 6px rgba(10,35,66,.10)}
+/* 호버 시 고정 셀 배경도 변경 */
+.roster tbody tr:hover td.c-ord,
+.roster tbody tr:hover td.c-no,
+.roster tbody tr:hover td.c-dept,
+.roster tbody tr:hover td.c-name{background:#e8f4fd}
+[data-theme="dark"] .roster tbody tr:hover td.c-ord,
+[data-theme="dark"] .roster tbody tr:hover td.c-no,
+[data-theme="dark"] .roster tbody tr:hover td.c-dept,
+[data-theme="dark"] .roster tbody tr:hover td.c-name{background:#162840}
+/* 근무인원수 행 고정 셀 */
+.sum-row td.c-ord,.sum-row td.c-no,.sum-row td.c-dept,.sum-row td.c-name{
+  background:var(--bg-sum)!important;
+  position:sticky;z-index:2;
+}
+.sum-row td.c-ord{left:0}
+.sum-row td.c-no{left:24px}
+.sum-row td.c-dept{left:54px}
+.sum-row td.c-name{left:102px}
 .ord-btn{display:flex;flex-direction:column;gap:1px;align-items:center;justify-content:center;height:30px;opacity:.35}
 .ord-btn:hover{opacity:.9}
 .ord-btn span{font-size:10px;line-height:1;color:var(--tx3)}
@@ -257,6 +316,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg-page);color:var(-
 .abs-type-btn.active{border-color:var(--abs-bd);color:var(--abs-tx);background:var(--abs-bg);font-weight:700}
 .abs-clear-btn{width:100%;padding:5px;border-radius:6px;border:1px solid var(--bd-s);background:transparent;color:var(--tx4);font-size:11px;font-family:'Noto Sans KR',sans-serif;cursor:pointer}
 .abs-clear-btn:hover{color:#f87171;border-color:#7f1d1d}
+/* rowspan=2 고정 열 헤더: 두 행 전체 z-index 올리기 */
+thead th.c-ord-h,thead th.c-no-h,thead th.c-dept-h,thead th.c-name-h{z-index:5!important}
+thead th.c-tot-h,thead th.c-note-h{position:sticky;z-index:3;background:#0a2342;top:0}
+[data-theme="dark"] thead th.c-tot-h,[data-theme="dark"] thead th.c-note-h{background:#0a1628}
 .sum-row td{background:var(--bg-sum)!important;font-size:11px;font-weight:700;padding:5px 3px;text-align:center!important}
 .sn-work{color:#0d5aa7;font-weight:700}
 [data-theme="dark"] .sn-work{color:#7ac8f0}
@@ -334,7 +397,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg-page);color:var(-
     <button class="btn btn-site-manage" id="btnSiteMgr">🏗 현장 관리</button>
     <button class="btn btn-out" id="btnHol" style="color:rgba(255,255,255,.85);border-color:rgba(255,255,255,.28);background:rgba(255,255,255,.1)">📅 공휴일 관리</button>
     <div style="font-size:10px;color:rgba(255,255,255,.6);text-align:right;line-height:1.5;padding:0 2px;border-left:1px solid rgba(255,255,255,.2);padding-left:10px">
-      <div style="color:rgba(255,255,255,.9);font-weight:700;letter-spacing:.3px">v2.9</div>
+      <div style="color:rgba(255,255,255,.9);font-weight:700;letter-spacing:.3px">v3.0</div>
       <div style="color:rgba(255,255,255,.55)">2025-05-02</div>
     </div>
     <button class="theme-btn" id="btnTheme">
@@ -931,16 +994,16 @@ function renderTable(){
       <table class="roster">
         <thead>
           <tr>
-            <th style="width:22px"></th>
-            <th class="c-no" rowspan="2">No</th>
-            <th class="c-dept" rowspan="2">구분</th>
-            <th class="c-name" rowspan="2" style="text-align:left;padding-left:8px">성명</th>
+            <th class="c-ord-h" style="width:24px;top:0"></th>
+            <th class="c-no c-no-h" rowspan="2" style="top:0">No</th>
+            <th class="c-dept c-dept-h" rowspan="2" style="top:0">구분</th>
+            <th class="c-name c-name-h" rowspan="2" style="top:0">성명</th>
             ${DI.map(x=>`<th class="${thC(x.t)}"${S.holidays[x.k]?` title="${S.holidays[x.k]}"`:''}>${x.d}</th>`).join('')}
-            <th class="c-tot" rowspan="2">휴무계</th>
-            <th class="c-note" rowspan="2" style="text-align:center">비고</th>
+            <th class="c-tot c-tot-h" rowspan="2" style="right:90px">휴무계</th>
+            <th class="c-note c-note-h" rowspan="2" style="text-align:center">비고</th>
           </tr>
           <tr>
-            <th style="width:22px"></th>
+            <th class="c-ord-h" style="width:24px;top:38px"></th>
             ${DI.map(x=>`<th class="${thC(x.t)}" style="font-size:9px;padding:3px 1px">${WD[x.w]}</th>`).join('')}
           </tr>
         </thead>
@@ -958,7 +1021,7 @@ function renderTable(){
               <td class="c-ord" title="드래그 순서변경"><div class="ord-btn"><span>▲</span><span style="font-size:8px;color:var(--tx4)">⠿</span><span>▼</span></div></td>
               <td class="c-no">${i+1}</td>
               <td class="c-dept"><span class="dbdg">${emp.dept||''}</span></td>
-              <td class="c-name" data-action="${!isPast?'openEditEmp':''}" data-sid="${S.site}" data-eid="${eid}" title="${!isPast?'클릭 → 수정':''}">${emp.name}</td>
+              <td class="c-name" data-action="${!isPast?'openEditEmp':''}" data-sid="${S.site}" data-eid="${eid}" title="${!isPast?'클릭 → 수정':''}" style="text-align:center">${emp.name}</td>
               ${DI.map(x=>{
                 const hasOff=!!(eo[x.k]);   // eo 자체가 이미 fallback 처리됨
                 const absType=ea[x.k]||'';
@@ -974,8 +1037,10 @@ function renderTable(){
             </tr>`;
           }).join('')}
           <tr class="sum-row">
-            <td></td><td></td><td></td>
-            <td style="text-align:left;padding-left:8px;color:var(--tx3);font-size:11px">근무인원수</td>
+            <td class="c-ord"></td>
+            <td class="c-no"></td>
+            <td class="c-dept"></td>
+            <td class="c-name" style="color:var(--tx3);font-size:11px;font-weight:600">근무인원수</td>
             ${DI.map((x,i)=>`<td class="${snC(x.t)}">${wCnt[i]}</td>`).join('')}
             <td></td><td></td>
           </tr>
