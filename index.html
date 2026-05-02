@@ -245,7 +245,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg-page);color:var(-
     <button class="btn btn-site-manage" id="btnSiteMgr">🏗 현장 관리</button>
     <button class="btn btn-out" id="btnHol">📅 공휴일 관리</button>
     <div style="font-size:10px;color:var(--tx4);text-align:right;line-height:1.5;padding:0 2px;border-left:1px solid var(--bd-m);padding-left:10px">
-      <div style="color:var(--acc2);font-weight:700;letter-spacing:.3px">v2.6</div>
+      <div style="color:var(--acc2);font-weight:700;letter-spacing:.3px">v2.7</div>
       <div style="color:var(--tx4)">2025-05-02</div>
     </div>
     <button class="theme-btn" id="btnTheme">
@@ -861,7 +861,9 @@ function renderTable(){
             const seid=String(eid);   // Firebase 복원 후 키가 항상 문자열
             const eo=offs[seid]||{};
             const ea=absMap[seid]||{};
-            const cnt=Object.keys(eo).length;  // 휴무계: offDays만 카운트
+            // 휴무계: 현재 달 날짜만 카운트 (다른 달 데이터 혼입 방지)
+            const monthPrefix=dkey(y,m,1).slice(0,7);  // 'YYYY-MM'
+            const cnt=Object.keys(eo).filter(k=>k.startsWith(monthPrefix)).length;
             const nv=nts[eid]||'';
             return `<tr draggable="true" data-idx="${i}" data-eid="${eid}">
               <td class="c-ord" title="드래그 순서변경"><div class="ord-btn"><span>▲</span><span style="font-size:8px;color:var(--tx4)">⠿</span><span>▼</span></div></td>
@@ -1454,7 +1456,9 @@ async function exportPDF(){
       const seid=String(eid);
       const eo=offs[seid]||{};
       const ea=absData[seid]||{};
-      const cnt=Object.keys(eo).length;  // 휴무계: offDays만
+      // 휴무계: 현재 달 날짜만 카운트
+      const pdfMonthPrefix=dkey(y,m,1).slice(0,7);
+      const cnt=Object.keys(eo).filter(k=>k.startsWith(pdfMonthPrefix)).length;
       const noteVal=nts[eid]||'';
       const rowY=curY+i*ROW_H;
 
