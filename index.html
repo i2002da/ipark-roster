@@ -214,6 +214,16 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg-page);color:var(-
 .note-popup-ta{width:100%;min-height:70px;background:var(--bg-inp);border:1px solid var(--bd-m);border-radius:5px;color:var(--tx2);font-size:12px;font-family:'Noto Sans KR',sans-serif;padding:6px 8px;resize:vertical;outline:none}
 .note-popup-ta:focus{border-color:var(--acc)}
 .note-popup-acts{display:flex;gap:6px;justify-content:flex-end;margin-top:6px}
+/* 현장 관리 모달 */
+.site-list{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;margin-bottom:14px}
+.site-item{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--bg-inp);border:1px solid var(--bd-s);border-radius:7px}
+.site-item-info{flex:1;min-width:0}
+.site-item-disp{font-size:13px;font-weight:600;color:var(--tx1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.site-item-full{font-size:11px;color:var(--tx4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.site-item-acts{display:flex;gap:5px;flex-shrink:0}
+.site-del-btn{background:none;border:1px solid #7f1d1d;color:#f87171;border-radius:5px;cursor:pointer;padding:3px 8px;font-size:11px;font-family:'Noto Sans KR',sans-serif}
+.site-del-btn:hover{background:#2a0a0a}
+.btn-site-manage{background:rgba(59,130,246,.12);color:var(--acc2);border:1px solid rgba(59,130,246,.3)}.btn-site-manage:hover{background:rgba(59,130,246,.22)}
 </style>
 </head>
 <body>
@@ -232,6 +242,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg-page);color:var(-
       <div class="sync-dot" id="syncDot"></div>
       <span class="sync-label" id="syncLabel">연결 중...</span>
     </div>
+    <button class="btn btn-site-manage" id="btnSiteMgr">🏗 현장 관리</button>
     <button class="btn btn-out" id="btnHol">📅 공휴일 관리</button>
     <button class="theme-btn" id="btnTheme">
       <span id="thIcon" style="font-size:15px">🌙</span>
@@ -310,6 +321,24 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg-page);color:var(-
   </div>
 </div>
 
+<!-- 현장 관리 모달 (정적 DOM) -->
+<div class="mover" id="siteMgrM">
+  <div class="modal" style="width:480px">
+    <div class="m-title">🏗 현장 관리</div>
+    <div id="siteList" class="site-list"></div>
+    <hr style="border:none;border-top:1px solid var(--bd-s);margin-bottom:14px">
+    <div style="font-size:12px;font-weight:600;color:var(--tx3);margin-bottom:10px">새 현장 추가</div>
+    <div class="m-form">
+      <div class="f-row"><label class="f-lbl">현장명 (탭 표시용 · 짧게)</label><input class="f-inp" id="siteDispLabel" placeholder="예: 3단지, 신규현장A"></div>
+      <div class="f-row"><label class="f-lbl">현장 전체명 (근무표 상단 표시)</label><input class="f-inp" id="siteFullName" placeholder="예: 천안 아이파크시티 3단지 신축공사"></div>
+    </div>
+    <div class="m-acts">
+      <button class="btn btn-out" id="btnSiteMgrClose">닫기</button>
+      <button class="btn btn-pri" id="btnSiteAdd">+ 현장 추가</button>
+    </div>
+  </div>
+</div>
+
 <!-- 공휴일 관리 모달 (정적 DOM) -->
 <div class="mover" id="holM">
   <div class="modal">
@@ -336,11 +365,15 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg-page);color:var(-
 //  4. 모든 동적 요소 이벤트 → data-action 위임 완전 적용
 // ================================================================
 
-const SITES=[
+// SITES는 S.sites에서 동적으로 관리 (현장 추가/삭제 지원)
+// 아래는 최초 초기값 — 로드 후 S.sites로 덮어씀
+const DEFAULT_SITES=[
   {id:'s5',label:'5danji',   dispLabel:'아이파크시티 5단지', fullName:'천안 아이파크시티 5단지'},
   {id:'s6',label:'6danji',   dispLabel:'아이파크시티 6단지', fullName:'천안 아이파크시티 6단지'},
   {id:'sg',label:'buseong',  dispLabel:'부성 3~6단지',       fullName:'천안부성 3~6단지 부지조성공사'}
 ];
+// 런타임 참조용 (항상 S.sites 와 동기화)
+let SITES = JSON.parse(JSON.stringify(DEFAULT_SITES));
 const WD=['일','월','화','수','목','금','토'];
 
 const INIT_EMP={
@@ -377,10 +410,12 @@ const DEF_HOL={
 
 let S={
   site:'s5', year:2026, month:5,
+  sites: JSON.parse(JSON.stringify(DEFAULT_SITES)),  // 동적 현장 목록
+  nextSiteId: 1,                                      // 현장 ID 카운터
   employees:JSON.parse(JSON.stringify(INIT_EMP)),
   empSnaps:{s5:{},s6:{},sg:{}},
   offDays:{s5:{},s6:{},sg:{}},
-  absDays:{s5:{},s6:{},sg:{}},   // absDays[site][empId][dateKey] = '교육'|'출장'|'병가'|'기타'
+  absDays:{s5:{},s6:{},sg:{}},
   notes:{s5:{},s6:{},sg:{}},
   holidays:{...DEF_HOL},
   notices:{s5:'',s6:'',sg:''},
@@ -482,6 +517,7 @@ function setSyncUI(state, msg){
 // ── 직렬화 / 역직렬화 ──────────────────────────────────────────
 function stateToJson(){
   return JSON.stringify({
+    sites:S.sites,         nextSiteId:S.nextSiteId,
     employees:S.employees, empSnaps:S.empSnaps,
     offDays:S.offDays,     absDays:S.absDays,
     notes:S.notes,         holidays:S.holidays,
@@ -489,6 +525,8 @@ function stateToJson(){
   });
 }
 function applyRemote(d){
+  if(d.sites)     { S.sites=d.sites; SITES=JSON.parse(JSON.stringify(d.sites)); }
+  if(d.nextSiteId)S.nextSiteId=d.nextSiteId;
   if(d.employees) S.employees = d.employees;
   if(d.empSnaps)  S.empSnaps  = d.empSnaps;
   if(d.offDays)   S.offDays   = d.offDays;
@@ -497,6 +535,8 @@ function applyRemote(d){
   if(d.holidays)  S.holidays  = d.holidays;
   if(d.notices)   S.notices   = d.notices;
   if(d.nextId)    S.nextId    = d.nextId;
+  // 현재 선택 현장이 사라진 경우 첫 번째로 이동
+  if(SITES.length && !SITES.find(x=>x.id===S.site)) S.site=SITES[0].id;
 }
 
 // ── Firebase 초기화 & 데이터 로드 ──────────────────────────────
@@ -564,6 +604,7 @@ function saveState(){
   try{ localStorage.setItem('hdr_theme', S.theme); }catch(_){}
   // 로컬 백업
   try{ localStorage.setItem('hdr_v10', JSON.stringify({
+    sites:S.sites,         nextSiteId:S.nextSiteId,
     employees:S.employees, empSnaps:S.empSnaps, offDays:S.offDays, absDays:S.absDays,
     notes:S.notes, holidays:S.holidays, notices:S.notices, nextId:S.nextId, theme:S.theme
   })); }catch(_){}
@@ -578,6 +619,7 @@ function saveState(){
     }
     try{
       const payload = {
+        sites:S.sites,         nextSiteId:S.nextSiteId,
         employees:S.employees, empSnaps:S.empSnaps,
         offDays:S.offDays,     absDays:S.absDays,
         notes:S.notes,         holidays:S.holidays,
@@ -634,10 +676,12 @@ document.getElementById('cdlgNo').addEventListener('click',()=>{
 
 // ── 탭 ──
 function buildTabs(){
-  document.getElementById('tabNav').innerHTML=SITES.map(s=>`
+  // SITES는 applyRemote에서 항상 S.sites와 동기화됨
+  const tabHtml = SITES.map(s=>`
     <button class="tab-btn ${s.id===S.site?'active':''}" data-action="tab" data-sid="${s.id}">
       ${s.dispLabel}<span class="tab-bdg">${getEmpsForMonth(s.id,S.year,S.month).length}명</span>
     </button>`).join('');
+  document.getElementById('tabNav').innerHTML = tabHtml;
 }
 
 // ── 테이블 렌더 ──
@@ -831,6 +875,7 @@ document.addEventListener('click',e=>{
   if(!el) return;
   const a=el.dataset.action;
   if(a==='tab'){S.site=el.dataset.sid;buildTabs();renderTable();return;}
+  if(a==='removeSite'){removeSite(el.dataset.sid);return;}
   if(a==='prevMonth'){chMonth(-1);return;}
   if(a==='nextMonth'){chMonth(1);return;}
   if(a==='toggleBulk'){document.getElementById('bulkPanel').classList.toggle('open');return;}
@@ -855,6 +900,9 @@ document.addEventListener('click',e=>{
 
 // ── 정적 DOM 버튼 직접 연결 ──
 document.getElementById('btnTheme').addEventListener('click',toggleTheme);
+document.getElementById('btnSiteMgr').addEventListener('click',openSiteMgrModal);
+document.getElementById('btnSiteMgrClose').addEventListener('click',()=>closeModal('siteMgrM'));
+document.getElementById('btnSiteAdd').addEventListener('click',addSite);
 document.getElementById('btnHol').addEventListener('click',openHolModal);
 document.getElementById('btnAddEmpCancel').addEventListener('click',()=>closeModal('addEmpM'));
 document.getElementById('btnAddEmpOk').addEventListener('click',addEmp);
@@ -1017,6 +1065,87 @@ function saveNote(){
   if(!S.notes[sid])S.notes[sid]={};
   S.notes[sid][eid]=document.getElementById('notePopupTa').value.trim();
   saveState();closeNotePopup();renderTable();
+}
+
+// ════ 현장 관리 ════
+function openSiteMgrModal(){
+  renderSiteList();
+  document.getElementById('siteDispLabel').value='';
+  document.getElementById('siteFullName').value='';
+  document.getElementById('siteMgrM').classList.add('open');
+}
+
+function renderSiteList(){
+  const el=document.getElementById('siteList');
+  if(!SITES.length){
+    el.innerHTML='<div style="color:var(--tx4);font-size:12px;padding:8px;text-align:center">등록된 현장이 없습니다</div>';
+    return;
+  }
+  el.innerHTML=SITES.map((s,i)=>`
+    <div class="site-item">
+      <div class="site-item-info">
+        <div class="site-item-disp">${escHtml(s.dispLabel)}</div>
+        <div class="site-item-full">${escHtml(s.fullName)}</div>
+      </div>
+      <div class="site-item-acts">
+        ${SITES.length>1
+          ?`<button class="site-del-btn" data-action="removeSite" data-sid="${s.id}">삭제</button>`
+          :'<span style="font-size:10px;color:var(--tx4)">최소 1개</span>'}
+      </div>
+    </div>`).join('');
+}
+
+function addSite(){
+  const disp = document.getElementById('siteDispLabel').value.trim();
+  const full = document.getElementById('siteFullName').value.trim();
+  if(!disp||!full){ alert('현장명과 전체명을 모두 입력하세요.'); return; }
+  // 새 고유 ID 생성
+  const newId = 'site_' + Date.now();
+  const label = 'site' + S.nextSiteId;
+  S.nextSiteId++;
+  // 현장 목록에 추가
+  S.sites.push({id:newId, label, dispLabel:disp, fullName:full});
+  SITES = JSON.parse(JSON.stringify(S.sites));
+  // 해당 현장 데이터 슬롯 초기화
+  S.employees[newId]  = [];
+  S.empSnaps[newId]   = {};
+  S.offDays[newId]    = {};
+  S.absDays[newId]    = {};
+  S.notes[newId]      = {};
+  S.notices[newId]    = '';
+  S.nextId[newId]     = 1;
+  // UI 전환 및 저장
+  S.site = newId;
+  saveState();
+  renderSiteList();
+  buildTabs();
+  renderTable();
+  document.getElementById('siteDispLabel').value='';
+  document.getElementById('siteFullName').value='';
+}
+
+async function removeSite(sid){
+  if(SITES.length<=1){ alert('현장은 최소 1개 이상이어야 합니다.'); return; }
+  const s = SITES.find(x=>x.id===sid);
+  if(!s) return;
+  const ok = await cdlgShow(`"${s.dispLabel}" 현장을 삭제하시겠습니까?\n해당 현장의 모든 직원과 근무 데이터가 삭제됩니다.`);
+  if(!ok) return;
+  // 상태에서 제거
+  S.sites = S.sites.filter(x=>x.id!==sid);
+  SITES = JSON.parse(JSON.stringify(S.sites));
+  delete S.employees[sid];
+  delete S.empSnaps[sid];
+  delete S.offDays[sid];
+  delete S.absDays[sid];
+  delete S.notes[sid];
+  delete S.notices[sid];
+  delete S.nextId[sid];
+  // 현재 탭이 삭제된 경우 첫 번째로 이동
+  if(S.site===sid) S.site = SITES[0].id;
+  saveState();
+  renderSiteList();
+  buildTabs();
+  renderTable();
 }
 
 function openHolModal(){
