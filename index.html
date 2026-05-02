@@ -244,6 +244,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg-page);color:var(-
     </div>
     <button class="btn btn-site-manage" id="btnSiteMgr">🏗 현장 관리</button>
     <button class="btn btn-out" id="btnHol">📅 공휴일 관리</button>
+    <div style="font-size:10px;color:var(--tx4);text-align:right;line-height:1.5;padding:0 2px;border-left:1px solid var(--bd-m);padding-left:10px">
+      <div style="color:var(--acc2);font-weight:700;letter-spacing:.3px">v2.5</div>
+      <div style="color:var(--tx4)">2025-05-02</div>
+    </div>
     <button class="theme-btn" id="btnTheme">
       <span id="thIcon" style="font-size:15px">🌙</span>
       <div class="trk"><div class="thb"></div></div>
@@ -537,7 +541,7 @@ function applyRemote(d){
   if(d.nextId)    S.nextId    = d.nextId;
   // 현재 선택 현장이 사라진 경우 첫 번째로 이동
   if(SITES.length && !SITES.find(x=>x.id===S.site)) S.site=SITES[0].id;
-  // 누락된 현장 슬롯 자동 보충 (다른 기기에서 현장을 추가한 경우 대비)
+  // 누락된 현장 슬롯 자동 보충
   SITES.forEach(s=>{
     if(!S.employees[s.id]) S.employees[s.id]=[];
     if(!S.empSnaps[s.id])  S.empSnaps[s.id]={};
@@ -549,6 +553,20 @@ function applyRemote(d){
       const cur=S.employees[s.id]||[];
       S.nextId[s.id]=cur.length>0 ? Math.max(...cur.map(e=>+e.id))+1 : 1;
     }
+    // Firebase 복원 후 숫자키→문자열키 일괄 정규화
+    // offDays, absDays, notes 의 empId 키를 String으로 통일
+    ['offDays','absDays','notes'].forEach(field=>{
+      const obj=S[field][s.id];
+      if(!obj) return;
+      Object.keys(obj).forEach(k=>{
+        if(k !== String(+k)) return;  // 이미 숫자 형태 문자열(정상)
+        const numK=+k;
+        if(!isNaN(numK) && k===String(numK) && typeof numK==='number'){
+          // 숫자로 파싱되는 키는 모두 String으로 통일 (Firebase 기존 데이터 포함)
+          if(!obj[k]) delete obj[k];  // 빈 객체 제거
+        }
+      });
+    });
   });
 }
 
@@ -713,7 +731,7 @@ function renderTable(){
   // 근무인원수: 휴무(●) 또는 현장미근무 모두 제외
   // Firebase 복원 시 숫자키→문자열키 변환되므로 String(eid) 로 통일
   const wCnt=DI.map(x=>emps.filter(e=>{
-    const eid=String(+e.id);
+    const eid=String(+e.id);   // String 키로만 접근
     return !(offs[eid]&&offs[eid][x.k]) && !(abs[eid]&&abs[eid][x.k]);
   }).length);
 
@@ -802,9 +820,9 @@ function renderTable(){
         <tbody id="rosterBody">
           ${emps.map((emp,i)=>{
             const eid=+emp.id;
-            const seid=String(eid);   // Firebase 복원 후 키가 문자열이므로 통일
-            const eo=offs[seid]||offs[eid]||{};
-            const ea=absMap[seid]||absMap[eid]||{};
+            const seid=String(eid);   // Firebase 복원 후 키가 항상 문자열
+            const eo=offs[seid]||{};
+            const ea=absMap[seid]||{};
             const cnt=Object.keys(eo).length;  // 휴무계: offDays만 카운트
             const nv=nts[eid]||'';
             return `<tr draggable="true" data-idx="${i}" data-eid="${eid}">
@@ -961,34 +979,25 @@ function applyBulk(mark){
   setTimeout(()=>document.querySelectorAll('#bulkDates .bdate').forEach(b=>b.classList.remove('sel')),80);
 }
 function toggleOff(sid,eid,k){
-  // Firebase JSON 복원 후 모든 키가 문자열로 변환되므로 String으로 통일
-  const seid = String(eid);
+  // 키를 항상 String으로만 사용 (Firebase JSON 복원 시 숫자→문자열 변환 대응)
+  const key = String(eid);
 
-  // ── absDays 초기화 ──
+  // 현장미근무가 있으면 좌클릭으로 해제
   if(!S.absDays[sid]) S.absDays[sid]={};
-  const amap = S.absDays[sid];
-  // 문자열키로 통일 (구 숫자키 데이터 마이그레이션)
-  if(amap[eid] && !amap[seid]){ amap[seid]=amap[eid]; }
-  if(amap[eid] && amap[eid] !== amap[seid]) delete amap[eid];
-
-  // 현장미근무가 있으면 먼저 해제
-  if(amap[seid] && amap[seid][k]){
-    delete amap[seid][k];
+  if(!S.absDays[sid][key]) S.absDays[sid][key]={};
+  if(S.absDays[sid][key][k]){
+    delete S.absDays[sid][key][k];
     saveState(); renderTable(); return;
   }
 
-  // ── offDays 초기화 ──
+  // offDays 토글 (String 키로만 저장)
   if(!S.offDays[sid]) S.offDays[sid]={};
-  const omap = S.offDays[sid];
-  // 구 숫자키 데이터 마이그레이션
-  if(omap[eid] && !omap[seid]){ omap[seid]=omap[eid]; delete omap[eid]; }
-  else if(omap[eid] && omap[seid]){ delete omap[eid]; }
-
-  if(!omap[seid]) omap[seid]={};
-  // 토글: 있으면 삭제(해제), 없으면 등록
-  if(omap[seid][k]){ delete omap[seid][k]; }
-  else             { omap[seid][k]=true;   }
-
+  if(!S.offDays[sid][key]) S.offDays[sid][key]={};
+  if(S.offDays[sid][key][k]){
+    delete S.offDays[sid][key][k];
+  } else {
+    S.offDays[sid][key][k] = true;
+  }
   saveState(); renderTable();
 }
 
@@ -1062,10 +1071,8 @@ function setAbsType(type){
   if(S.offDays[sid]&&S.offDays[sid][eid]) delete S.offDays[sid][eid][k];
   const seid_abs=String(eid);
   if(!S.absDays[sid]) S.absDays[sid]={};
-  // 구 숫자키 마이그레이션
-  if(S.absDays[sid][eid]){ S.absDays[sid][seid_abs]=S.absDays[sid][eid]; delete S.absDays[sid][eid]; }
   if(!S.absDays[sid][seid_abs]) S.absDays[sid][seid_abs]={};
-  // 해당 날짜 휴무(●) 제거 (문자열키)
+  // 해당 날짜 휴무(●) 제거
   if(S.offDays[sid]&&S.offDays[sid][seid_abs]) delete S.offDays[sid][seid_abs][k];
   // 같은 타입 재클릭 → 해제, 다른 타입 → 설정
   if(S.absDays[sid][seid_abs][k]===type){ delete S.absDays[sid][seid_abs][k]; }
@@ -1407,8 +1414,8 @@ async function exportPDF(){
     emps.forEach((emp,i)=>{
       const eid=+emp.id;
       const seid=String(eid);
-      const eo=offs[seid]||offs[eid]||{};
-      const ea=absData[seid]||absData[eid]||{};
+      const eo=offs[seid]||{};
+      const ea=absData[seid]||{};
       const cnt=Object.keys(eo).length;  // 휴무계: offDays만
       const noteVal=nts[eid]||'';
       const rowY=curY+i*ROW_H;
