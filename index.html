@@ -961,25 +961,35 @@ function applyBulk(mark){
   setTimeout(()=>document.querySelectorAll('#bulkDates .bdate').forEach(b=>b.classList.remove('sel')),80);
 }
 function toggleOff(sid,eid,k){
-  // Firebase 복원 후 키가 문자열이므로 String으로 통일 저장
-  const seid=String(eid);
-  if(!S.absDays[sid])S.absDays[sid]={};
-  if(!S.offDays[sid])S.offDays[sid]={};
-  // 현장미근무가 설정돼 있으면 좌클릭으로 제거 (숫자/문자열 키 모두 확인)
-  const amap=S.absDays[sid];
-  if((amap[seid]&&amap[seid][k])||(amap[eid]&&amap[eid][k])){
-    if(amap[seid]) delete amap[seid][k];
-    if(amap[eid])  delete amap[eid][k];
-    saveState();renderTable();return;
+  // Firebase JSON 복원 후 모든 키가 문자열로 변환되므로 String으로 통일
+  const seid = String(eid);
+
+  // ── absDays 초기화 ──
+  if(!S.absDays[sid]) S.absDays[sid]={};
+  const amap = S.absDays[sid];
+  // 문자열키로 통일 (구 숫자키 데이터 마이그레이션)
+  if(amap[eid] && !amap[seid]){ amap[seid]=amap[eid]; }
+  if(amap[eid] && amap[eid] !== amap[seid]) delete amap[eid];
+
+  // 현장미근무가 있으면 먼저 해제
+  if(amap[seid] && amap[seid][k]){
+    delete amap[seid][k];
+    saveState(); renderTable(); return;
   }
-  if(!S.offDays[sid][seid])S.offDays[sid][seid]={};
-  const o=S.offDays[sid][seid];o[k]?delete o[k]:(o[k]=true);
-  // 구버전 숫자키 데이터 정리
-  if(S.offDays[sid][eid]&&typeof eid==='number'){
-    Object.assign(S.offDays[sid][seid],S.offDays[sid][eid]);
-    delete S.offDays[sid][eid];
-  }
-  saveState();renderTable();
+
+  // ── offDays 초기화 ──
+  if(!S.offDays[sid]) S.offDays[sid]={};
+  const omap = S.offDays[sid];
+  // 구 숫자키 데이터 마이그레이션
+  if(omap[eid] && !omap[seid]){ omap[seid]=omap[eid]; delete omap[eid]; }
+  else if(omap[eid] && omap[seid]){ delete omap[eid]; }
+
+  if(!omap[seid]) omap[seid]={};
+  // 토글: 있으면 삭제(해제), 없으면 등록
+  if(omap[seid][k]){ delete omap[seid][k]; }
+  else             { omap[seid][k]=true;   }
+
+  saveState(); renderTable();
 }
 
 function openAddEmpM(){document.getElementById('nDept').value='';document.getElementById('nName').value='';document.getElementById('addEmpM').classList.add('open');}
@@ -1050,16 +1060,16 @@ function setAbsType(type){
   if(!sid||!k) return;
   // 휴무(●)가 있으면 제거
   if(S.offDays[sid]&&S.offDays[sid][eid]) delete S.offDays[sid][eid][k];
-  const seid_abs=String(eid);  // Firebase 키 통일
+  const seid_abs=String(eid);
   if(!S.absDays[sid]) S.absDays[sid]={};
+  // 구 숫자키 마이그레이션
+  if(S.absDays[sid][eid]){ S.absDays[sid][seid_abs]=S.absDays[sid][eid]; delete S.absDays[sid][eid]; }
   if(!S.absDays[sid][seid_abs]) S.absDays[sid][seid_abs]={};
-  // 휴무도 String key로 정리
+  // 해당 날짜 휴무(●) 제거 (문자열키)
   if(S.offDays[sid]&&S.offDays[sid][seid_abs]) delete S.offDays[sid][seid_abs][k];
-  if(S.absDays[sid][seid_abs][k]===type){
-    delete S.absDays[sid][seid_abs][k];
-  } else {
-    S.absDays[sid][seid_abs][k]=type;
-  }
+  // 같은 타입 재클릭 → 해제, 다른 타입 → 설정
+  if(S.absDays[sid][seid_abs][k]===type){ delete S.absDays[sid][seid_abs][k]; }
+  else { S.absDays[sid][seid_abs][k]=type; }
   saveState();closeAbsPopup();renderTable();
 }
 function clearAbsType(){
@@ -1067,7 +1077,6 @@ function clearAbsType(){
   if(!sid||!k) return;
   const s_eid=String(eid);
   if(S.absDays[sid]&&S.absDays[sid][s_eid]) delete S.absDays[sid][s_eid][k];
-  if(S.absDays[sid]&&S.absDays[sid][eid])   delete S.absDays[sid][eid][k];
   saveState();closeAbsPopup();renderTable();
 }
 // abs 팝업 타입 버튼 & 해제 버튼 — addEventListener 직접 연결
