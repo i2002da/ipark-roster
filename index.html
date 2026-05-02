@@ -132,6 +132,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg-page);color:var(-
 [data-theme="dark"] .btn-out{background:transparent}
 .btn-del{background:#c0392b;color:#fff}.btn-del:hover{background:#a93226}
 .btn-pdf{background:linear-gradient(135deg,#0a2342,#1a6fc4);color:#fff;box-shadow:0 1px 4px rgba(10,35,66,.2)}.btn-pdf:hover{background:linear-gradient(135deg,#0d2e56,#1565a8)}
+.btn-excel{background:linear-gradient(135deg,#1a5c30,#2e8b4a);color:#fff;box-shadow:0 1px 4px rgba(26,92,48,.2)}.btn-excel:hover{background:linear-gradient(135deg,#14612f,#1a7a40)}
 .btn-bulk{background:var(--bulk-bg);color:var(--bulk-tx);border:1px solid var(--bulk-bd)}.btn-bulk:hover{opacity:.85}
 .btn-warn{background:transparent;color:#c0392b;border:1px solid #e8a0a0}.btn-warn:hover{background:#fff0f0}
 [data-theme="dark"] .btn-warn{color:#f87171;border-color:#7f1d1d}.btn-warn:hover{background:#2a0a0a}
@@ -383,7 +384,7 @@ thead th.c-tot-h,thead th.c-note-h{position:sticky;z-index:3;background:#0a2342;
     <button class="btn btn-site-manage" id="btnSiteMgr">🏗 현장 관리</button>
     <button class="btn btn-out" id="btnHol" style="color:rgba(255,255,255,.85);border-color:rgba(255,255,255,.28);background:rgba(255,255,255,.1)">📅 공휴일 관리</button>
     <div style="font-size:10px;color:rgba(255,255,255,.6);text-align:right;line-height:1.5;padding:0 2px;border-left:1px solid rgba(255,255,255,.2);padding-left:10px">
-      <div style="color:rgba(255,255,255,.9);font-weight:700;letter-spacing:.3px">v3.2</div>
+      <div style="color:rgba(255,255,255,.9);font-weight:700;letter-spacing:.3px">v3.3</div>
       <div style="color:rgba(255,255,255,.55)">2025-05-02</div>
     </div>
     <button class="theme-btn" id="btnTheme">
@@ -947,6 +948,7 @@ function renderTable(){
       <button class="btn btn-bulk" data-action="toggleBulk">📋 일괄 휴무</button>
       ${!isPast?'<button class="btn btn-out" data-action="openAddEmp">+ 직원 추가</button>':''}
       <button class="btn btn-pdf" data-action="exportPDF">PDF 저장</button>
+      <button class="btn btn-excel" data-action="exportExcel">엑셀 저장</button>
     </div>
 
     <div class="bulk-panel" id="bulkPanel">
@@ -1105,6 +1107,7 @@ document.addEventListener('click',e=>{
   if(a==='openAbs'){openAbsPopup(e,el.dataset.sid,+el.dataset.eid,el.dataset.key);return;}
   if(a==='openNote'){openNotePopup(e,el.dataset.sid,+el.dataset.eid);return;}
   if(a==='exportPDF'){exportPDF();return;}
+  if(a==='exportExcel'){exportExcel();return;}
   if(a==='toggleNotice'){toggleNotice();return;}
   if(a==='cancelNotice'){cancelNotice();return;}
   if(a==='saveNotice'){saveNotice();return;}
@@ -1426,293 +1429,366 @@ function closeModal(id){document.getElementById(id).classList.remove('open');}
 async function exportPDF(){
   const site=SITES.find(x=>x.id===S.site);
   const btn=document.querySelector('[data-action="exportPDF"]');
-  if(btn){btn.innerHTML='⏳ 생성 중...';btn.disabled=true;}
+  if(btn){btn.innerHTML='⏳ PDF 생성 중...';btn.disabled=true;}
   try{
+    // ── 현재 테마에 맞는 색상 (화면 CSS 변수와 1:1 일치) ──
     const isDark=S.theme==='dark';
-    const bg  =isDark?'#0f1117':'#ffffff';
-    const tx1 =isDark?'#f1f5f9':'#0f172a';
-    const tx2 =isDark?'#e2e8f0':'#1e293b';
-    const tx3 =isDark?'#94a3b8':'#475569';
-    const tx4 =isDark?'#64748b':'#64748b';
-    const accTx=isDark?'#60a5fa':'#1d4ed8';
-    const satBg=isDark?'#0d1f3a':'#eff6ff';
-    const satTx=isDark?'#60a5fa':'#1d4ed8';
-    const sunBg=isDark?'#2a0a0a':'#fef2f2';
-    const sunTx=isDark?'#f87171':'#dc2626';
-    const offBg=isDark?'#162216':'#dcfce7';
-    const offDot=isDark?'#4ade80':'#16a34a';
-    const navBg=isDark?'#131720':'#f1f5f9';
-    const bdS  =isDark?'#1e2535':'#e2e8f0';
-    const bdM  =isDark?'#2d3748':'#cbd5e1';
-    const sumBg=isDark?'#131720':'#f1f5f9';
-    const bdgBg=isDark?'#1e2535':'#e2e8f0';
-
-    const y=S.year, m=S.month;
+    const C={
+      bg:       isDark?'#0d1b2a':'#ffffff',
+      bgPage:   isDark?'#0d1b2a':'#f0f4f8',
+      bgSum:    isDark?'#101e30':'#f0f7ff',
+      bgBdg:    isDark?'#0d2a44':'#ddeeff',
+      bdS:      isDark?'#162840':'#dde8f2',
+      bdM:      isDark?'#1e3550':'#c2d4e8',
+      tx1:      isDark?'#e8f4ff':'#0a2342',
+      tx2:      isDark?'#c0d8f0':'#1a3a5c',
+      tx3:      isDark?'#7aadd4':'#3d6b9a',
+      tx4:      isDark?'#4a7aaa':'#7a9bbf',
+      accTx:    isDark?'#7ac8f0':'#0d5aa7',
+      hdrBg:    '#0a2342',   // 헤더 항상 딥블루
+      hdrTx:    '#b8d4f0',
+      satBg:    isDark?'#0a1e38':'#e8f4fd',
+      satTx:    isDark?'#7ac8f0':'#1565a8',
+      satHdrBg: isDark?'#0a1e38':'#1565a8',
+      satHdrTx: isDark?'#7ac8f0':'#c8e4f8',
+      sunBg:    isDark?'#2a0a0a':'#fff0f0',
+      sunTx:    isDark?'#f87171':'#c0392b',
+      sunHdrBg: isDark?'#2a0a0a':'#8b1a1a',
+      sunHdrTx: isDark?'#f87171':'#ffd5d5',
+      chBg:     isDark?'#0a1e0a':'#f0faf4',
+      chTx:     isDark?'#4ade80':'#1a7a40',
+      chHdrBg:  isDark?'#0a1e0a':'#1a5c30',
+      chHdrTx:  isDark?'#4ade80':'#c8ecd8',
+      offBg:    isDark?'#0a2010':'#c8e8d0',
+      offDot:   isDark?'#4ade80':'#1a7a40',
+      absBg:    isDark?'#0a1e38':'#ddeeff',
+      absTx:    isDark?'#7ac8f0':'#0d5aa7',
+      bdgTx:    isDark?'#7ac8f0':'#0d5aa7',
+      totBg:    isDark?'#0a1e38':'#f0f7ff',
+      totTx:    isDark?'#7ac8f0':'#0a2342',
+      nbBg:     isDark?'#101e30':'#f8fbff',
+    };
+    const y=S.year,m=S.month;
     const emps=getEmpsForMonth(S.site,y,m);
     const offs=S.offDays[S.site]||{};
     const nts =S.notes[S.site]||{};
-
-    // ─── 날짜 배열 ───
     const DI=[];
     for(let d=1;d<=dim(y,m);d++) DI.push({d,w:dow(y,m,d),k:dkey(y,m,d),t:dayType(y,m,d)});
     const WDL=['일','월','화','수','목','금','토'];
     const absData0=S.absDays[S.site]||{};
+    const monthPfx=dkey(y,m,1).slice(0,7);
     const wCnt=DI.map(x=>emps.filter(e=>{
-      const eid=String(+e.id);  // Firebase 키 통일
+      const eid=String(+e.id);
       return !(offs[eid]&&offs[eid][x.k])&&!(absData0[eid]&&absData0[eid][x.k]);
     }).length);
 
-    // ─── Canvas 치수 ───
-    const DPR=2;                    // 해상도 배율
-    const ROW_H=28;                 // 행 높이(px)
-    const HEADER_H=40;              // 헤더 2행 높이
-    const COL_ORD=0;                // 순서핸들(숨김)
-    const COL_NO=30;
-    const COL_DEPT=48;
-    const COL_NAME=72;
-    const COL_DAY=24;               // 날짜 열 너비
-    const COL_TOT=44;
-    const COL_NOTE=90;
-    const TABLE_W=COL_NO+COL_DEPT+COL_NAME+DI.length*COL_DAY+COL_TOT+COL_NOTE+2;
-    const TITLE_H=56;               // 제목 영역
-    const NOTICE_PAD=12;
-
-    // 공지사항 텍스트 래핑 계산
-    const noticeText=(S.notices[S.site]||'').trim();
-    const NOTE_FONT_SZ=12;
-    const NOTE_LINE_H=NOTE_FONT_SZ*1.8;
+    // ── Canvas 치수 ──
+    const DPR=2;
+    const ROW_H=28,HDR_H=38;
+    const COL_NO=32,COL_DEPT=50,COL_NAME=74,COL_DAY=26,COL_TOT=44,COL_NOTE=90;
+    const TABLE_W=COL_NO+COL_DEPT+COL_NAME+DI.length*COL_DAY+COL_TOT+COL_NOTE;
+    const TITLE_H=54,NOTICE_PAD=12;
+    const NOTE_SZ=12,NOTE_LH=NOTE_SZ*1.8;
     let noticeLines=[];
+    const noticeText=(S.notices[S.site]||'').trim();
     if(noticeText){
       const tmp=document.createElement('canvas').getContext('2d');
-      tmp.font=NOTE_FONT_SZ+'px "Noto Sans KR",sans-serif';
-      const maxW=TABLE_W-NOTICE_PAD*2;
+      tmp.font=NOTE_SZ+'px "Noto Sans KR",sans-serif';
+      const mxW=TABLE_W-NOTICE_PAD*2;
       noticeText.split('\n').forEach(para=>{
         if(!para.trim()){noticeLines.push('');return;}
         let line='';
         para.split('').forEach(ch=>{
-          const test=line+ch;
-          if(tmp.measureText(test).width>maxW&&line){noticeLines.push(line);line=ch;}
-          else line=test;
+          const t=line+ch;
+          if(tmp.measureText(t).width>mxW&&line){noticeLines.push(line);line=ch;}
+          else line=t;
         });
         if(line) noticeLines.push(line);
       });
     }
-    const NOTICE_H=noticeLines.length>0
-      ? NOTICE_PAD*2+20+noticeLines.length*NOTE_LINE_H+NOTICE_PAD
-      : 0;
-
-    const TOTAL_H=TITLE_H+HEADER_H+emps.length*ROW_H+ROW_H+NOTICE_H+4;
+    const NOTICE_H=noticeLines.length>0?NOTICE_PAD*2+20+noticeLines.length*NOTE_LH+NOTICE_PAD:0;
+    const TOTAL_H=TITLE_H+HDR_H+emps.length*ROW_H+ROW_H+NOTICE_H+4;
 
     const fc=document.createElement('canvas');
-    fc.width =TABLE_W*DPR;
-    fc.height=TOTAL_H*DPR;
-    const c=fc.getContext('2d');
-    c.scale(DPR,DPR);
+    fc.width=TABLE_W*DPR; fc.height=TOTAL_H*DPR;
+    const c=fc.getContext('2d'); c.scale(DPR,DPR);
 
-    // ─── 헬퍼 ───
-    const fillRect=(x,y,w,h,color)=>{c.fillStyle=color;c.fillRect(x,y,w,h);};
-    const strokeRect=(x,y,w,h,color)=>{c.strokeStyle=color;c.lineWidth=.5;c.strokeRect(x+.5,y+.5,w-1,h-1);};
-    const text=(t,x,y,color,font,align='center',maxW)=>{
-      c.fillStyle=color;c.font=font;c.textAlign=align;c.textBaseline='middle';
-      if(maxW) c.fillText(t,x,y,maxW); else c.fillText(t,x,y);
+    // ── 헬퍼 ──
+    const fr=(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(x,y,w,h);};
+    const tx=(t,x,y,col,font,align='center',mxW)=>{
+      c.fillStyle=col;c.font=font;c.textAlign=align;c.textBaseline='middle';
+      if(mxW)c.fillText(String(t),x,y,mxW);else c.fillText(String(t),x,y);
     };
-    const hline=(x1,y,x2,color)=>{c.strokeStyle=color;c.lineWidth=.5;c.beginPath();c.moveTo(x1,y+.5);c.lineTo(x2,y+.5);c.stroke();};
-    const vline=(x,y1,y2,color)=>{c.strokeStyle=color;c.lineWidth=.5;c.beginPath();c.moveTo(x+.5,y1);c.lineTo(x+.5,y2);c.stroke();};
+    const hl=(x1,y,x2,col)=>{c.strokeStyle=col;c.lineWidth=.5;c.beginPath();c.moveTo(x1,y+.5);c.lineTo(x2,y+.5);c.stroke();};
+    const vl=(x,y1,y2,col)=>{c.strokeStyle=col;c.lineWidth=.5;c.beginPath();c.moveTo(x+.5,y1);c.lineTo(x+.5,y2);c.stroke();};
 
     // 날짜 타입별 색상
-    const dayColors=t=>{
-      if(t==='sat') return {bg:satBg,tx:satTx};
-      if(t==='sun'||t==='holiday') return {bg:sunBg,tx:sunTx};
-      if(t==='custom') return {bg:isDark?'#0a1f0a':'#f0fdf4',tx:isDark?'#4ade80':'#15803d'};
-      return {bg,tx:tx4};
+    const dayC=t=>{
+      if(t==='sat')    return {bg:C.satBg,tx:C.satTx,hBg:C.satHdrBg,hTx:C.satHdrTx};
+      if(t==='sun'||t==='holiday') return {bg:C.sunBg,tx:C.sunTx,hBg:C.sunHdrBg,hTx:C.sunHdrTx};
+      if(t==='custom') return {bg:C.chBg,tx:C.chTx,hBg:C.chHdrBg,hTx:C.chHdrTx};
+      return {bg:C.bg,tx:C.tx4,hBg:C.hdrBg,hTx:C.hdrTx};
     };
 
     let curY=0;
 
-    // ═══ 1. 제목 ═══
-    fillRect(0,0,TABLE_W,TITLE_H,bg);
-    const titleStr=site.fullName+' 현장 운영 및 휴무계획  ('+y+'년 '+m+'월)';
-    // 폰트 크기 측정 후 y 좌표를 정확히 중앙에
-    const titleFs=18;
-    c.font='bold '+titleFs+'px "Noto Sans KR",sans-serif';
-    c.textBaseline='middle';
-    c.fillStyle=tx1;
-    c.textAlign='left';
-    c.fillText(titleStr,16,TITLE_H/2);
-    hline(0,TITLE_H-1,TABLE_W,bdM);
+    // ═══ 제목 ═══
+    fr(0,0,TABLE_W,TITLE_H,C.hdrBg);
+    const titleStr=site.fullName+' 현장 운영 및 휴무계획 ('+y+'년 '+m+'월)';
+    tx(titleStr,16,TITLE_H/2,C.hdrTx,'bold 18px "Noto Sans KR",sans-serif','left');
     curY=TITLE_H;
 
-    // ═══ 2. 테이블 헤더 ═══
-    // 열 X 위치 맵
-    const cols=[];
+    // ═══ 헤더 (단일행) ═══
+    // 고정 열 헤더
+    fr(0,curY,TABLE_W,HDR_H,C.hdrBg);
     let cx=0;
-    cols.push({key:'no',  x:cx,w:COL_NO});   cx+=COL_NO;
-    cols.push({key:'dept',x:cx,w:COL_DEPT});  cx+=COL_DEPT;
-    cols.push({key:'name',x:cx,w:COL_NAME});  cx+=COL_NAME;
-    DI.forEach(di=>{cols.push({key:'d'+di.d,x:cx,w:COL_DAY,di});cx+=COL_DAY;});
-    cols.push({key:'tot', x:cx,w:COL_TOT});   cx+=COL_TOT;
-    cols.push({key:'note',x:cx,w:COL_NOTE});  cx+=COL_NOTE;
-
-    const H1=20, H2=20; // 헤더 행1, 행2
-    // 헤더 배경
-    fillRect(0,curY,TABLE_W,H1+H2,navBg);
-
-    const hFont='bold 10px "Noto Sans KR",sans-serif';
-    const hFont2='9px "Noto Sans KR",sans-serif';
-
-    // 고정 헤더 (No, 구분, 성명, 휴무계, 비고)
-    [
-      {col:'no',  label:'No'},
-      {col:'dept',label:'구분'},
-      {col:'name',label:'성명'},
-      {col:'tot', label:'휴무계'},
-      {col:'note',label:'비고'},
-    ].forEach(({col,label})=>{
-      const cc=cols.find(c=>c.key===col);
-      fillRect(cc.x,curY,cc.w,H1+H2,navBg);
-      text(label,cc.x+cc.w/2,curY+(H1+H2)/2,tx3,hFont);
+    const fixedCols=[
+      {label:'No',  w:COL_NO},
+      {label:'구분',w:COL_DEPT},
+      {label:'성명',w:COL_NAME},
+    ];
+    fixedCols.forEach(col=>{
+      tx(col.label,cx+col.w/2,curY+HDR_H/2,C.hdrTx,'bold 11px "Noto Sans KR",sans-serif');
+      vl(cx+col.w,curY,curY+HDR_H,C.bdM);
+      cx+=col.w;
     });
-
     // 날짜 헤더
     DI.forEach(di=>{
-      const cc=cols.find(c=>c.di&&c.di.d===di.d);
-      const cl=dayColors(di.t);
-      fillRect(cc.x,curY,cc.w,H1,cl.bg);
-      text(String(di.d),cc.x+cc.w/2,curY+H1/2,cl.tx,hFont);
-      fillRect(cc.x,curY+H1,cc.w,H2,cl.bg);
-      text(WDL[di.w],cc.x+cc.w/2,curY+H1+H2/2,cl.tx,hFont2);
+      const dc=dayC(di.t);
+      fr(cx,curY,COL_DAY,HDR_H,dc.hBg);
+      tx(di.d,cx+COL_DAY/2,curY+HDR_H/2-6,dc.hTx,'bold 10px "Noto Sans KR",sans-serif');
+      tx(WDL[di.w],cx+COL_DAY/2,curY+HDR_H/2+7,dc.hTx,'9px "Noto Sans KR",sans-serif');
+      vl(cx+COL_DAY,curY,curY+HDR_H,C.bdS);
+      cx+=COL_DAY;
     });
+    // 휴무계·비고 헤더
+    fr(cx,curY,COL_TOT,HDR_H,C.hdrBg);
+    tx('휴무계',cx+COL_TOT/2,curY+HDR_H/2,C.hdrTx,'bold 11px "Noto Sans KR",sans-serif');
+    vl(cx+COL_TOT,curY,curY+HDR_H,C.bdM); cx+=COL_TOT;
+    fr(cx,curY,COL_NOTE,HDR_H,C.hdrBg);
+    tx('비고',cx+COL_NOTE/2,curY+HDR_H/2,C.hdrTx,'bold 11px "Noto Sans KR",sans-serif');
+    hl(0,curY+HDR_H,TABLE_W,C.bdM);
+    curY+=HDR_H;
 
-    // 헤더 하단 선
-    hline(0,curY+H1+H2,TABLE_W,bdS);
-    // 날짜 중간 선
-    hline(0,curY+H1,TABLE_W,bdS);
-    curY+=H1+H2;
-
-    // ═══ 3. 직원 행 ═══
+    // ═══ 직원 행 ═══
     const absData=S.absDays[S.site]||{};
     emps.forEach((emp,i)=>{
-      const eid=+emp.id;
-      const seid=String(eid);
+      const eid=+emp.id; const seid=String(eid);
       const eo=offs[seid]||{};
       const ea=absData[seid]||{};
-      // 휴무계: 현재 달 날짜만 카운트
-      const pdfMonthPrefix=dkey(y,m,1).slice(0,7);
-      const cnt=Object.keys(eo).filter(k=>k.startsWith(pdfMonthPrefix)).length;
-      const noteVal=nts[eid]||'';
+      const cnt=Object.keys(eo).filter(k=>k.startsWith(monthPfx)).length;
+      const noteVal=nts[seid]||nts[eid]||'';
       const rowY=curY+i*ROW_H;
-
-      // 행 배경
-      fillRect(0,rowY,TABLE_W,ROW_H,bg);
-
+      fr(0,rowY,TABLE_W,ROW_H,C.bg);
+      let cx2=0;
       // No
-      text(String(i+1),cols.find(c=>c.key==='no').x+COL_NO/2,rowY+ROW_H/2,tx4,'11px "Noto Sans KR",sans-serif');
+      tx(i+1,cx2+COL_NO/2,rowY+ROW_H/2,C.tx4,'11px "Noto Sans KR",sans-serif'); cx2+=COL_NO;
       // 구분 badge
       if(emp.dept){
-        const dc=cols.find(c=>c.key==='dept');
         const bw=Math.min(COL_DEPT-6,emp.dept.length*8+8);
-        const bx=dc.x+(COL_DEPT-bw)/2, by=rowY+(ROW_H-14)/2;
-        c.fillStyle=bdgBg; c.beginPath();
-        c.roundRect?c.roundRect(bx,by,bw,14,3):c.rect(bx,by,bw,14);
-        c.fill();
-        text(emp.dept,dc.x+COL_DEPT/2,rowY+ROW_H/2,tx3,'10px "Noto Sans KR",sans-serif');
+        const bx=cx2+(COL_DEPT-bw)/2,by=rowY+(ROW_H-14)/2;
+        c.fillStyle=C.bgBdg; c.beginPath();
+        if(c.roundRect) c.roundRect(bx,by,bw,14,3); else c.rect(bx,by,bw,14); c.fill();
+        tx(emp.dept,cx2+COL_DEPT/2,rowY+ROW_H/2,C.bdgTx,'bold 9px "Noto Sans KR",sans-serif');
       }
+      cx2+=COL_DEPT;
       // 성명
-      const nc=cols.find(c=>c.key==='name');
-      text(emp.name,nc.x+6,rowY+ROW_H/2,tx2,'500 12px "Noto Sans KR",sans-serif','left',COL_NAME-8);
+      tx(emp.name,cx2+COL_NAME/2,rowY+ROW_H/2,C.tx2,'500 12px "Noto Sans KR",sans-serif');
+      cx2+=COL_NAME;
       // 날짜 셀
       DI.forEach(di=>{
-        const cc=cols.find(c=>c.di&&c.di.d===di.d);
         const hasOff=!!(eo[di.k]);
         const absType=ea[di.k]||'';
-        const cl=dayColors(di.t);
-        const absBg=isDark?'#1a0d2e':'#faf5ff';
-        const absTx=isDark?'#c084fc':'#7c3aed';
-        let cellBg=cl.bg;
-        if(hasOff) cellBg=offBg;
-        else if(absType) cellBg=absBg;
-        fillRect(cc.x,rowY,cc.w,ROW_H,cellBg);
+        const dc=dayC(di.t);
+        let cBg=dc.bg;
         if(hasOff){
-          text('●',cc.x+cc.w/2,rowY+ROW_H/2,offDot,'11px sans-serif');
+          // 날짜 타입 배경 유지 + ● 표시
+          fr(cx2,rowY,COL_DAY,ROW_H,cBg);
+          const dotCol=di.t==='sat'?C.satTx:di.t==='sun'||di.t==='holiday'?C.sunTx:di.t==='custom'?C.chTx:C.offDot;
+          tx('●',cx2+COL_DAY/2,rowY+ROW_H/2,dotCol,'11px sans-serif');
         } else if(absType){
-          text(absType.charAt(0),cc.x+cc.w/2,rowY+ROW_H/2,absTx,'bold 9px "Noto Sans KR",sans-serif');
+          fr(cx2,rowY,COL_DAY,ROW_H,C.absBg);
+          tx(absType.charAt(0),cx2+COL_DAY/2,rowY+ROW_H/2,C.absTx,'bold 9px "Noto Sans KR",sans-serif');
+        } else {
+          fr(cx2,rowY,COL_DAY,ROW_H,dc.bg);
         }
+        vl(cx2+COL_DAY,rowY,rowY+ROW_H,C.bdS);
+        cx2+=COL_DAY;
       });
       // 휴무계
-      text(String(cnt),cols.find(c=>c.key==='tot').x+COL_TOT/2,rowY+ROW_H/2,accTx,'bold 12px "Noto Sans KR",sans-serif');
+      fr(cx2,rowY,COL_TOT,ROW_H,C.totBg);
+      tx(cnt,cx2+COL_TOT/2,rowY+ROW_H/2,C.totTx,'bold 13px "Noto Sans KR",sans-serif'); cx2+=COL_TOT;
       // 비고
-      if(noteVal){
-        const notec=cols.find(c=>c.key==='note');
-        text(noteVal,notec.x+4,rowY+ROW_H/2,tx2,'11px "Noto Sans KR",sans-serif','left',COL_NOTE-8);
-      }
-      // 행 구분선
-      hline(0,rowY+ROW_H,TABLE_W,bdS);
+      if(noteVal) tx(noteVal,cx2+4,rowY+ROW_H/2,C.tx3,'11px "Noto Sans KR",sans-serif','left',COL_NOTE-8);
+      hl(0,rowY+ROW_H,TABLE_W,C.bdS);
     });
 
-    // ═══ 4. 근무인원수 행 ═══
+    // ═══ 근무인원수 행 ═══
     const sumY=curY+emps.length*ROW_H;
-    fillRect(0,sumY,TABLE_W,ROW_H,sumBg);
-    const labelC=cols.find(c=>c.key==='name');
-    text('근무인원수',labelC.x+4,sumY+ROW_H/2,tx3,'11px "Noto Sans KR",sans-serif','left');
+    fr(0,sumY,TABLE_W,ROW_H,C.bgSum);
+    tx('근무인원수',COL_NO+COL_DEPT+COL_NAME/2,sumY+ROW_H/2,C.tx3,'11px "Noto Sans KR",sans-serif');
+    let sx=COL_NO+COL_DEPT+COL_NAME;
     DI.forEach((di,i)=>{
-      const cc=cols.find(c=>c.di&&c.di.d===di.d);
-      const cl=dayColors(di.t);
-      fillRect(cc.x,sumY,cc.w,ROW_H,cl.bg);
-      const txColor=di.t==='sat'?satTx:(di.t==='sun'||di.t==='holiday')?sunTx:accTx;
-      text(String(wCnt[i]),cc.x+cc.w/2,sumY+ROW_H/2,txColor,'bold 11px "Noto Sans KR",sans-serif');
+      const dc=dayC(di.t);
+      fr(sx,sumY,COL_DAY,ROW_H,dc.bg);
+      const ntx=di.t==='sat'?C.satTx:di.t==='sun'||di.t==='holiday'?C.sunTx:di.t==='custom'?C.chTx:C.accTx;
+      tx(wCnt[i],sx+COL_DAY/2,sumY+ROW_H/2,ntx,'bold 11px "Noto Sans KR",sans-serif');
+      vl(sx+COL_DAY,sumY,sumY+ROW_H,C.bdS); sx+=COL_DAY;
     });
-    hline(0,sumY+ROW_H,TABLE_W,bdM);
+    hl(0,sumY+ROW_H,TABLE_W,C.bdM);
     curY=sumY+ROW_H;
 
-    // ═══ 5. 열 구분선 ═══
-    const totalTableH=curY-TITLE_H;
-    cols.forEach(col=>{
-      if(col.x>0) vline(col.x,TITLE_H,curY,bdS);
-    });
-    // 테이블 외곽
-    c.strokeStyle=bdM;c.lineWidth=1;
-    c.strokeRect(0+.5,TITLE_H+.5,TABLE_W-1,totalTableH-1);
+    // ═══ 세로선 ═══
+    let vx=0;
+    [COL_NO,COL_DEPT,COL_NAME].forEach(w=>{vx+=w;vl(vx,TITLE_H,curY,C.bdM);});
+    DI.forEach(()=>{vx+=COL_DAY;vl(vx,TITLE_H,curY,C.bdS);});
+    vx+=COL_TOT; vl(vx,TITLE_H,curY,C.bdM);
+    c.strokeStyle=C.bdM;c.lineWidth=1;c.strokeRect(.5,TITLE_H+.5,TABLE_W-1,curY-TITLE_H-1);
 
-    // ═══ 6. 공지사항 ═══
+    // ═══ 공지사항 ═══
     if(noticeLines.length>0){
       curY+=NOTICE_PAD;
-      const nbBoxH=NOTICE_H-NOTICE_PAD;
-      fillRect(0,curY,TABLE_W,nbBoxH,isDark?'#131720':'#f1f5f9');
-      c.strokeStyle=bdS;c.lineWidth=.5;
-      c.strokeRect(.5,curY+.5,TABLE_W-1,nbBoxH-1);
-      text('📌 공지사항',12+NOTICE_PAD,curY+NOTICE_PAD+8,tx2,'bold 13px "Noto Sans KR",sans-serif','left');
-      hline(0,curY+NOTICE_PAD+16,TABLE_W,bdS);
-      noticeLines.forEach((line,i)=>{
-        text(line,NOTICE_PAD,curY+NOTICE_PAD+20+(i+0.5)*NOTE_LINE_H,tx4,NOTE_FONT_SZ+'px "Noto Sans KR",sans-serif','left',TABLE_W-NOTICE_PAD*2);
-      });
+      const nbH=NOTICE_H-NOTICE_PAD;
+      fr(0,curY,TABLE_W,nbH,C.nbBg);
+      c.strokeStyle=C.bdS;c.lineWidth=.5;c.strokeRect(.5,curY+.5,TABLE_W-1,nbH-1);
+      tx('📌 공지사항',NOTICE_PAD+12,curY+NOTICE_PAD+8,C.tx2,'bold 13px "Noto Sans KR",sans-serif','left');
+      hl(0,curY+NOTICE_PAD+16,TABLE_W,C.bdS);
+      noticeLines.forEach((line,i)=>tx(line,NOTICE_PAD,curY+NOTICE_PAD+20+(i+.5)*NOTE_LH,C.tx4,NOTE_SZ+'px "Noto Sans KR",sans-serif','left',TABLE_W-NOTICE_PAD*2));
     }
 
-    // ═══ 7. PDF 생성 & Blob 다운로드 ═══
+    // ═══ PDF 생성 & Blob 다운로드 ═══
     const imgData=fc.toDataURL('image/png');
     const {jsPDF}=window.jspdf;
     const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a3'});
-    const pw=pdf.internal.pageSize.getWidth();
-    const ph=pdf.internal.pageSize.getHeight();
+    const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
     const ratio=fc.width/fc.height;
     const margin=8;
-    let iw=pw-margin*2, ih=iw/ratio;
+    let iw=pw-margin*2,ih=iw/ratio;
     if(ih>ph-margin*2){ih=ph-margin*2;iw=ih*ratio;}
     pdf.addImage(imgData,'PNG',(pw-iw)/2,(ph-ih)/2,iw,ih);
-
     const fname='휴무근무표_'+site.label+'_'+y+String(m).padStart(2,'0')+'.pdf';
     const blob=pdf.output('blob');
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
     a.href=url;a.download=fname;a.style.display='none';
-    document.body.appendChild(a);
-    a.click();
+    document.body.appendChild(a);a.click();
     setTimeout(()=>{URL.revokeObjectURL(url);document.body.removeChild(a);},3000);
-
-  }catch(err){
-    console.error('PDF 오류:',err);
-    window.print();
-  }
+  }catch(err){console.error('PDF 오류:',err);window.print();}
   if(btn){btn.innerHTML='PDF 저장';btn.disabled=false;}
+}
+
+// ════════════════════════════════════════════════════════
+//  엑셀(XLSX) 내보내기
+// ════════════════════════════════════════════════════════
+async function exportExcel(){
+  const site=SITES.find(x=>x.id===S.site);
+  const btn=document.querySelector('[data-action="exportExcel"]');
+  if(btn){btn.innerHTML='⏳ 엑셀 생성 중...';btn.disabled=true;}
+  try{
+    const y=S.year,m=S.month;
+    const emps=getEmpsForMonth(S.site,y,m);
+    const offs=S.offDays[S.site]||{};
+    const absData=S.absDays[S.site]||{};
+    const nts=S.notes[S.site]||{};
+    const DI=[];
+    for(let d=1;d<=dim(y,m);d++) DI.push({d,w:dow(y,m,d),k:dkey(y,m,d),t:dayType(y,m,d)});
+    const WDL=['일','월','화','수','목','금','토'];
+    const monthPfx=dkey(y,m,1).slice(0,7);
+
+    // 헤더 행: No, 구분, 성명, 날짜들, 휴무계, 비고
+    const header=['No','구분','성명',...DI.map(di=>di.d+'('+WDL[di.w]+')'),'휴무계','비고'];
+
+    // 데이터 행
+    const rows=emps.map((emp,i)=>{
+      const seid=String(+emp.id);
+      const eo=offs[seid]||{};
+      const ea=absData[seid]||{};
+      const cnt=Object.keys(eo).filter(k=>k.startsWith(monthPfx)).length;
+      const cells=[i+1,emp.dept||'',emp.name];
+      DI.forEach(di=>{
+        if(eo[di.k]) cells.push('●');
+        else if(ea[di.k]) cells.push(ea[di.k]);
+        else cells.push('');
+      });
+      cells.push(cnt);
+      cells.push(nts[seid]||nts[+emp.id]||'');
+      return cells;
+    });
+
+    // 근무인원수 행
+    const wCnt=DI.map(x=>emps.filter(e=>{
+      const eid=String(+e.id);
+      return !(offs[eid]&&offs[eid][x.k])&&!(absData[eid]&&absData[eid][x.k]);
+    }).length);
+    const sumRow=['','','근무인원수',...wCnt,'',''];
+
+    // SheetJS로 xlsx 생성
+    if(!window.XLSX){
+      // SheetJS 동적 로드
+      await new Promise((res,rej)=>{
+        if(document.querySelector('script[data-sheetjs]')){res();return;}
+        const s=document.createElement('script');
+        s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        s.setAttribute('data-sheetjs','1');
+        s.onload=res;s.onerror=rej;
+        document.head.appendChild(s);
+      });
+    }
+    const wb=XLSX.utils.book_new();
+    const wsData=[header,...rows,sumRow];
+    const ws=XLSX.utils.aoa_to_sheet(wsData);
+
+    // 열 너비 설정
+    ws['!cols']=[{wch:4},{wch:8},{wch:10},...DI.map(()=>({wch:5})),{wch:6},{wch:20}];
+
+    // 셀 스타일 (헤더 굵게, 배경색)
+    const range=XLSX.utils.decode_range(ws['!ref']);
+    for(let C2=range.s.c;C2<=range.e.c;C2++){
+      const hCell=ws[XLSX.utils.encode_cell({r:0,c:C2})];
+      if(hCell){
+        hCell.s={
+          font:{bold:true,color:{rgb:'B8D4F0'}},
+          fill:{fgColor:{rgb:'0A2342'}},
+          alignment:{horizontal:'center',vertical:'center'},
+          border:{bottom:{style:'thin',color:{rgb:'1E5080'}}}
+        };
+      }
+    }
+    // 날짜 열 색상
+    DI.forEach((di,i)=>{
+      const col=3+i;
+      const hCell=ws[XLSX.utils.encode_cell({r:0,c:col})];
+      if(!hCell) return;
+      let rgb='0A2342';
+      if(di.t==='sat') rgb='1565A8';
+      else if(di.t==='sun'||di.t==='holiday') rgb='8B1A1A';
+      else if(di.t==='custom') rgb='1A5C30';
+      if(hCell) hCell.s={...hCell.s,fill:{fgColor:{rgb}}};
+      // 데이터 셀 ● 색상
+      for(let r=1;r<=emps.length;r++){
+        const cell=ws[XLSX.utils.encode_cell({r,c:col})];
+        if(cell&&cell.v==='●'){
+          cell.s={font:{color:{rgb:'1A7A40'},bold:true},alignment:{horizontal:'center'}};
+        } else if(cell&&cell.v&&cell.v!==''){
+          cell.s={font:{color:{rgb:'0D5AA7'}},alignment:{horizontal:'center'}};
+        }
+      }
+    });
+    // 근무인원수 행 배경
+    const sumRowIdx=rows.length+1;
+    for(let C2=range.s.c;C2<=range.e.c;C2++){
+      const cell=ws[XLSX.utils.encode_cell({r:sumRowIdx,c:C2})];
+      if(cell) cell.s={fill:{fgColor:{rgb:'F0F7FF'}},font:{bold:true},alignment:{horizontal:'center'}};
+    }
+
+    XLSX.utils.book_append_sheet(wb,ws,site.dispLabel.slice(0,31));
+    const fname='휴무근무표_'+site.label+'_'+y+String(m).padStart(2,'0')+'.xlsx';
+    XLSX.writeFile(wb,fname);
+  }catch(err){
+    console.error('엑셀 오류:',err);
+    alert('엑셀 저장 오류: '+err.message);
+  }
+  if(btn){btn.innerHTML='엑셀 저장';btn.disabled=false;}
 }
 
 // 라이브러리 인라인 내장 완료
