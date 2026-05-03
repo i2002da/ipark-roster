@@ -682,9 +682,22 @@ function ensureSnapshots(){
     if(!S.employees[sid]) S.employees[sid]=[];
     const emp=S.employees[sid];
     const arr=Array.isArray(emp)?emp:toArray(emp);
+
     // 현재달 스냅샷이 없으면 생성
     if(!S.empSnaps[sid][ck]){
       S.empSnaps[sid][ck]=JSON.parse(JSON.stringify(arr));
+    }
+
+    // 스냅샷이 현재달 1개뿐이고 이전 달 스냅샷이 하나도 없으면
+    // → 현재달 이전엔 직원이 없었음을 의미하는 경계 스냅샷 생성
+    // (Firebase 복원 후 이전 달 봉인 스냅샷이 사라진 경우 대비)
+    const allKeys=Object.keys(S.empSnaps[sid]);
+    const hasPriorSnap=allKeys.some(k=>k<ck);
+    if(!hasPriorSnap && allKeys.length>0){
+      // 현재달 직전 달에 현재 직원 목록이 아닌 "빈 배열" 경계 스냅샷 생성은 불가
+      // (처음 접속인지 vs 신규 현장인지 구분 불가)
+      // → 아무것도 하지 않고 getEmpsForMonth의 employees 폴백에 맡김
+      // → 단, employees를 현재달 스냅샷으로 간주 (이미 위에서 처리)
     }
   });
 }
@@ -1016,7 +1029,7 @@ async function loadState(){
 
 // ── 테마 ──
 // ── 버전 정보 (여기만 수정하면 화면에 즉시 반영) ──
-const APP_VERSION = 'v4.0';
+const APP_VERSION = 'v4.1';
 const APP_DATE    = '2026-05-03';
 
 function applyVersion(){
@@ -1651,12 +1664,19 @@ function addSite(){
   SITES = JSON.parse(JSON.stringify(S.sites));
   // 해당 현장 데이터 슬롯 초기화
   S.employees[newId]  = [];
-  S.empSnaps[newId]   = {};
   S.offDays[newId]    = {};
   S.absDays[newId]    = {};
   S.notes[newId]      = {};
   S.notices[newId]    = {};
-  S.nextId[newId]     = 1;   // ← 신규 현장 nextId 명시 초기화
+  S.nextId[newId]     = 1;
+  // 신규 현장: 현재달 이전은 빈 배열 스냅샷으로 봉인
+  // → 이전 달 조회 시 직원이 없는 것으로 표시됨
+  S.empSnaps[newId]   = {};
+  const _ck=ymKey(S.year,S.month);
+  // 현재달 직전 달에 빈 배열 스냅샷 1개 생성 (이전 달 탐색의 경계)
+  let _py=S.year, _pm=S.month-1;
+  if(_pm<1){_pm=12;_py--;}
+  S.empSnaps[newId][ymKey(_py,_pm)]=[];  // 빈 배열 = 이 달 이전 직원 없음
   // UI 전환 및 저장
   S.site = newId;
   saveState();
