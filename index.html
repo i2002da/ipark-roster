@@ -1029,7 +1029,7 @@ async function loadState(){
 
 // ── 테마 ──
 // ── 버전 정보 (여기만 수정하면 화면에 즉시 반영) ──
-const APP_VERSION = 'v4.1';
+const APP_VERSION = 'v4.2';
 const APP_DATE    = '2026-05-03';
 
 function applyVersion(){
@@ -1122,6 +1122,14 @@ function buildTabs(){
     </button>`).join('');
   document.getElementById('tabNav').innerHTML = tabHtml;
   updateHdrStats();
+  // 이전 달 버튼: 최소 연월이면 비활성화
+  const prevBtn=document.getElementById('btnHdrPrevMonth');
+  if(prevBtn){
+    const atMin=ymKey(S.year,S.month)<=ymKey(MIN_YEAR,MIN_MONTH);
+    prevBtn.disabled=atMin;
+    prevBtn.style.opacity=atMin?'0.3':'1';
+    prevBtn.style.cursor=atMin?'not-allowed':'pointer';
+  }
 }
 
 // ── 테이블 렌더 ──
@@ -1379,13 +1387,20 @@ document.addEventListener('click',e=>{
 });
 
 // ── 기능 함수 ──
+// 표시 가능한 최소 연월 (이 달 이전은 표시하지 않음)
+const MIN_YEAR=2026, MIN_MONTH=4;
+function clampToMin(){
+  if(ymKey(S.year,S.month)<ymKey(MIN_YEAR,MIN_MONTH)){
+    S.year=MIN_YEAR; S.month=MIN_MONTH;
+  }
+}
 function chMonth(d){
   S.month+=d;
   if(S.month>12){S.month=1;S.year++;}
   if(S.month<1){S.month=12;S.year--;}
+  clampToMin();  // 최소 연월 제한
   buildTabs();
   renderTable();
-  // hdrMonthLbl 즉시 갱신
   const lbl=document.getElementById('hdrMonthLbl');
   if(lbl) lbl.textContent=S.year+'년 '+S.month+'월';
 }
@@ -2137,6 +2152,7 @@ async function exportExcel(){
 (async()=>{
   setSyncUI('poll','🔄 데이터 불러오는 중...');
   await loadState();
+  clampToMin();        // 최소 연월(2026-04) 제한
   ensureSnapshots();   // 로드 후 스냅샷 보장
   applyTheme(S.theme);
   applyVersion();
