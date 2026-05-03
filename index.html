@@ -353,14 +353,31 @@ thead th.c-tot-h,thead th.c-note-h{position:sticky;z-index:3;background:#0a2342;
 .note-popup-ta:focus{border-color:var(--acc)}
 .note-popup-acts{display:flex;gap:6px;justify-content:flex-end;margin-top:6px}
 /* 현장 관리 모달 */
-.site-list{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;margin-bottom:14px}
-.site-item{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--bg-inp);border:1px solid var(--bd-s);border-radius:7px}
-.site-item-info{flex:1;min-width:0}
+.site-list{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;margin-bottom:14px}
+.site-item{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--bg-inp);border:1px solid var(--bd-s);border-radius:7px;transition:border-color .15s}
+.site-item:hover{border-color:var(--bd-m)}
+.site-item.drag-over-site{border-top:2px solid var(--acc)!important}
+/* 드래그 핸들 */
+.site-drag-handle{cursor:grab;color:var(--tx4);font-size:14px;padding:0 4px;user-select:none;flex-shrink:0;opacity:.5}
+.site-drag-handle:hover{opacity:1}
+.site-drag-handle:active{cursor:grabbing}
+/* 현장명 표시 영역 */
+.site-item-info{flex:1;min-width:0;cursor:default}
 .site-item-disp{font-size:13px;font-weight:600;color:var(--tx1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .site-item-full{font-size:11px;color:var(--tx4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 인라인 수정 폼 */
+.site-edit-form{display:none;flex-direction:column;gap:6px;padding:8px 0 4px}
+.site-edit-form.open{display:flex}
+.site-edit-inp{padding:5px 8px;background:var(--bg-page);border:1px solid var(--bd-m);border-radius:5px;color:var(--tx2);font-size:12px;font-family:'Noto Sans KR',sans-serif;outline:none;width:100%}
+.site-edit-inp:focus{border-color:var(--acc)}
+.site-edit-acts{display:flex;gap:5px;justify-content:flex-end}
+/* 버튼 */
 .site-item-acts{display:flex;gap:5px;flex-shrink:0}
-.site-del-btn{background:none;border:1px solid #7f1d1d;color:#f87171;border-radius:5px;cursor:pointer;padding:3px 8px;font-size:11px;font-family:'Noto Sans KR',sans-serif}
-.site-del-btn:hover{background:#2a0a0a}
+.site-edit-btn{background:none;border:1px solid var(--bd-m);color:var(--tx3);border-radius:5px;cursor:pointer;padding:3px 8px;font-size:11px;font-family:'Noto Sans KR',sans-serif}
+.site-edit-btn:hover{border-color:var(--acc);color:var(--acc)}
+.site-del-btn{background:none;border:1px solid #c0392b;color:#c0392b;border-radius:5px;cursor:pointer;padding:3px 8px;font-size:11px;font-family:'Noto Sans KR',sans-serif}
+.site-del-btn:hover{background:#fff0f0}
+[data-theme="dark"] .site-del-btn{border-color:#7f1d1d;color:#f87171}.site-del-btn:hover{background:#2a0a0a}
 .btn-site-manage{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.28)}.btn-site-manage:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.5)}
 [data-theme="dark"] .btn-site-manage{background:rgba(61,155,220,.12);color:#7ac8f0;border-color:rgba(61,155,220,.3)}
 </style>
@@ -384,7 +401,7 @@ thead th.c-tot-h,thead th.c-note-h{position:sticky;z-index:3;background:#0a2342;
     <button class="btn btn-site-manage" id="btnSiteMgr">🏗 현장 관리</button>
     <button class="btn btn-out" id="btnHol" style="color:rgba(255,255,255,.85);border-color:rgba(255,255,255,.28);background:rgba(255,255,255,.1)">📅 공휴일 관리</button>
     <div style="font-size:10px;color:rgba(255,255,255,.6);text-align:right;line-height:1.5;padding:0 2px;border-left:1px solid rgba(255,255,255,.2);padding-left:10px">
-      <div style="color:rgba(255,255,255,.9);font-weight:700;letter-spacing:.3px">v3.3</div>
+      <div style="color:rgba(255,255,255,.9);font-weight:700;letter-spacing:.3px">v3.4</div>
       <div style="color:rgba(255,255,255,.55)">2025-05-02</div>
     </div>
     <button class="theme-btn" id="btnTheme">
@@ -466,11 +483,12 @@ thead th.c-tot-h,thead th.c-note-h{position:sticky;z-index:3;background:#0a2342;
 
 <!-- 현장 관리 모달 (정적 DOM) -->
 <div class="mover" id="siteMgrM">
-  <div class="modal" style="width:480px">
+  <div class="modal" style="width:500px">
     <div class="m-title">🏗 현장 관리</div>
+    <div style="font-size:11px;color:var(--tx4);margin-bottom:10px">⠿ 드래그로 순서 변경 &nbsp;|&nbsp; ✎ 클릭으로 현장명 수정</div>
     <div id="siteList" class="site-list"></div>
     <hr style="border:none;border-top:1px solid var(--bd-s);margin-bottom:14px">
-    <div style="font-size:12px;font-weight:600;color:var(--tx3);margin-bottom:10px">새 현장 추가</div>
+    <div style="font-size:12px;font-weight:600;color:var(--tx3);margin-bottom:10px">+ 새 현장 추가</div>
     <div class="m-form">
       <div class="f-row"><label class="f-lbl">현장명 (탭 표시용 · 짧게)</label><input class="f-inp" id="siteDispLabel" placeholder="예: 3단지, 신규현장A"></div>
       <div class="f-row"><label class="f-lbl">현장 전체명 (근무표 상단 표시)</label><input class="f-inp" id="siteFullName" placeholder="예: 천안 아이파크시티 3단지 신축공사"></div>
@@ -1311,6 +1329,8 @@ function openSiteMgrModal(){
   document.getElementById('siteMgrM').classList.add('open');
 }
 
+// ── 현장 드래그 순서 변경 ──
+let siteDragIdx=null;
 function renderSiteList(){
   const el=document.getElementById('siteList');
   if(!SITES.length){
@@ -1318,17 +1338,78 @@ function renderSiteList(){
     return;
   }
   el.innerHTML=SITES.map((s,i)=>`
-    <div class="site-item">
-      <div class="site-item-info">
-        <div class="site-item-disp">${escHtml(s.dispLabel)}</div>
-        <div class="site-item-full">${escHtml(s.fullName)}</div>
+    <div class="site-item" data-si="${i}" draggable="true">
+      <span class="site-drag-handle" title="드래그하여 순서 변경">⠿</span>
+      <div class="site-item-info" style="flex:1;min-width:0">
+        <!-- 표시 모드 -->
+        <div class="site-item-view" id="siteView_${i}">
+          <div class="site-item-disp">${escHtml(s.dispLabel)}</div>
+          <div class="site-item-full">${escHtml(s.fullName)}</div>
+        </div>
+        <!-- 인라인 수정 폼 -->
+        <div class="site-edit-form" id="siteEditForm_${i}">
+          <input class="site-edit-inp" id="siteEditDisp_${i}" value="${escHtml(s.dispLabel)}" placeholder="현장명(탭)" maxlength="20">
+          <input class="site-edit-inp" id="siteEditFull_${i}" value="${escHtml(s.fullName)}" placeholder="현장 전체명" maxlength="60">
+          <div class="site-edit-acts">
+            <button class="btn btn-out" style="padding:3px 10px;font-size:11px" onclick="cancelEditSite(${i})">취소</button>
+            <button class="btn btn-pri" style="padding:3px 10px;font-size:11px" onclick="saveEditSite('${s.id}',${i})">저장</button>
+          </div>
+        </div>
       </div>
       <div class="site-item-acts">
+        <button class="site-edit-btn" onclick="openEditSite(${i})" title="현장명 수정">✎ 수정</button>
         ${SITES.length>1
           ?`<button class="site-del-btn" data-action="removeSite" data-sid="${s.id}">삭제</button>`
           :'<span style="font-size:10px;color:var(--tx4)">최소 1개</span>'}
       </div>
     </div>`).join('');
+
+  // 드래그 이벤트 연결
+  el.querySelectorAll('.site-item[data-si]').forEach(item=>{
+    item.addEventListener('dragstart',e=>{
+      siteDragIdx=+item.dataset.si;
+      e.dataTransfer.effectAllowed='move';
+      setTimeout(()=>item.style.opacity='.45',0);
+    });
+    item.addEventListener('dragend',()=>{ item.style.opacity='1'; });
+    item.addEventListener('dragover',e=>{ e.preventDefault(); item.classList.add('drag-over-site'); });
+    item.addEventListener('dragleave',()=>item.classList.remove('drag-over-site'));
+    item.addEventListener('drop',e=>{
+      e.preventDefault(); item.classList.remove('drag-over-site');
+      const targetIdx=+item.dataset.si;
+      if(siteDragIdx===null||siteDragIdx===targetIdx){siteDragIdx=null;return;}
+      // S.sites 순서 변경
+      const moved=S.sites.splice(siteDragIdx,1)[0];
+      S.sites.splice(targetIdx,0,moved);
+      SITES=JSON.parse(JSON.stringify(S.sites));
+      // 현재 탭이 이동된 경우 추적
+      siteDragIdx=null;
+      saveState(); buildTabs(); renderSiteList();
+    });
+  });
+}
+function openEditSite(i){
+  document.getElementById('siteView_'+i).style.display='none';
+  document.getElementById('siteEditForm_'+i).classList.add('open');
+  document.getElementById('siteEditDisp_'+i).focus();
+}
+function cancelEditSite(i){
+  document.getElementById('siteView_'+i).style.display='';
+  document.getElementById('siteEditForm_'+i).classList.remove('open');
+}
+function saveEditSite(sid,i){
+  const disp=document.getElementById('siteEditDisp_'+i).value.trim();
+  const full=document.getElementById('siteEditFull_'+i).value.trim();
+  if(!disp||!full){ alert('현장명과 전체명을 모두 입력하세요.'); return; }
+  // S.sites와 SITES 모두 업데이트
+  const si=S.sites.findIndex(x=>x.id===sid);
+  if(si<0) return;
+  S.sites[si].dispLabel=disp;
+  S.sites[si].fullName=full;
+  SITES=JSON.parse(JSON.stringify(S.sites));
+  saveState(); buildTabs(); renderSiteList();
+  // 현재 탭이 수정된 현장이면 renderTable도 갱신
+  if(S.site===sid) renderTable();
 }
 
 function addSite(){
