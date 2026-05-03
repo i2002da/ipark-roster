@@ -110,6 +110,29 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg-page);color:var(-
 .hdr-stat-off  .hdr-stat-val{color:#fca5a5}
 .hdr-stat-tot  .hdr-stat-val{color:#ffffff}
 .hdr-stat-div{width:1px;height:32px;background:rgba(255,255,255,.18);flex-shrink:0}
+/* 날짜 선택 */
+.hdr-stat-date{
+  display:flex;align-items:center;gap:5px;
+  padding:4px 10px;border-radius:7px;
+  border:1px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.08);
+  flex-shrink:0;
+}
+.hdr-stat-date-lbl{font-size:9px;color:rgba(255,255,255,.55);letter-spacing:.3px}
+.hdr-stat-date-inp{
+  background:transparent;border:none;outline:none;
+  color:rgba(255,255,255,.9);font-size:11px;font-weight:600;
+  font-family:'Noto Sans KR',sans-serif;cursor:pointer;
+  width:88px;
+}
+.hdr-stat-date-inp::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5);cursor:pointer}
+.hdr-stat-today-btn{
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);
+  color:rgba(255,255,255,.75);font-size:9px;font-weight:600;
+  padding:2px 6px;border-radius:4px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;
+  white-space:nowrap;
+}
+.hdr-stat-today-btn:hover{background:rgba(255,255,255,.22);color:#fff}
 /* 헤더 월 이동 버튼 */
 .hdr-mo-nav{display:flex;align-items:center;gap:4px;flex-shrink:0}
 .hdr-mo-btn{width:26px;height:26px;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.1);color:rgba(255,255,255,.85);border-radius:5px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;line-height:1;font-family:'Noto Sans KR',sans-serif}
@@ -408,14 +431,14 @@ thead th.c-tot-h,thead th.c-note-h{position:sticky;z-index:3;background:#0a2342;
       <div class="logo-s">천안 IPC 통합현장</div>
     </div>
   </div>
-  <!-- 헤더 중앙: 인원 통계 (오늘 기준 전체 현장 합산) -->
+  <!-- 헤더 중앙: 인원 통계 -->
   <div class="hdr-stats" id="hdrStats">
-    <div class="hdr-stat hdr-stat-work" title="전체 현장 오늘 근무 인원">
+    <div class="hdr-stat hdr-stat-work" title="선택 날짜 기준 근무 인원">
       <span class="hdr-stat-lbl">근무</span>
       <span class="hdr-stat-val" id="statWork">--</span>
     </div>
     <div class="hdr-stat-div"></div>
-    <div class="hdr-stat hdr-stat-off" title="전체 현장 오늘 휴무 인원">
+    <div class="hdr-stat hdr-stat-off" title="선택 날짜 기준 휴무+미근무 인원">
       <span class="hdr-stat-lbl">휴무</span>
       <span class="hdr-stat-val" id="statOff">--</span>
     </div>
@@ -423,6 +446,14 @@ thead th.c-tot-h,thead th.c-note-h{position:sticky;z-index:3;background:#0a2342;
     <div class="hdr-stat hdr-stat-tot" title="전체 현장 총 등록 인원">
       <span class="hdr-stat-lbl">총원</span>
       <span class="hdr-stat-val" id="statTot">--</span>
+    </div>
+    <div class="hdr-stat-div"></div>
+    <div class="hdr-stat-date" title="집계 기준 날짜">
+      <div>
+        <div class="hdr-stat-date-lbl">기준일</div>
+        <input type="date" class="hdr-stat-date-inp" id="statDateInp">
+      </div>
+      <button class="hdr-stat-today-btn" id="btnStatToday">오늘</button>
     </div>
   </div>
 
@@ -640,18 +671,38 @@ function dayType(y,m,d){
 }
 function escHtml(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
-// ── 직원 목록 조회: 해당 달 스냅샷 기반 ──────────────────────
-// 스냅샷이 없으면 이전 달 스냅샷을 탐색 (employees[] 직접 반환 금지)
+// ── 초기 스냅샷 보장 ─────────────────────────────────────────
+// Firebase 복원 후 스냅샷이 없으면 현재 employees로 현재달 초기 생성
+// → 이후 getEmpsForMonth가 절대로 employees를 직접 참조하지 않도록 보장
+function ensureSnapshots(){
+  const ck=ymKey(S.year,S.month);
+  SITES.forEach(s=>{
+    const sid=s.id;
+    if(!S.empSnaps[sid]) S.empSnaps[sid]={};
+    if(!S.employees[sid]) S.employees[sid]=[];
+    const emp=S.employees[sid];
+    const arr=Array.isArray(emp)?emp:toArray(emp);
+    // 현재달 스냅샷이 없으면 생성
+    if(!S.empSnaps[sid][ck]){
+      S.empSnaps[sid][ck]=JSON.parse(JSON.stringify(arr));
+    }
+  });
+}
+
+// ── 직원 목록 조회: 반드시 스냅샷 기반 ───────────────────────
+// employees를 절대 직접 반환하지 않음
+// → "스냅샷 없는 이전 달 = 가장 가까운 이전 스냅샷" 원칙 적용
 function getEmpsForMonth(sid,y,m){
   if(!S.empSnaps[sid]) S.empSnaps[sid]={};
   const k=ymKey(y,m);
-  // 1) 해당 달 스냅샷이 있으면 바로 반환
+
+  // 1) 해당 달 스냅샷 있으면 반환
   if(S.empSnaps[sid][k]){
     const raw=S.empSnaps[sid][k];
     return Array.isArray(raw)?raw:toArray(raw);
   }
-  // 2) 스냅샷 없음 → k 이하의 스냅샷 중 가장 최신 것 탐색
-  //    (과거·미래 모두 포함: 가장 가까운 이전 스냅샷)
+
+  // 2) k 이하의 스냅샷 중 가장 최신 것 반환
   const keys=Object.keys(S.empSnaps[sid])
     .filter(sk=>sk<=k)
     .sort((a,b)=>b.localeCompare(a));
@@ -659,25 +710,34 @@ function getEmpsForMonth(sid,y,m){
     const raw=S.empSnaps[sid][keys[0]];
     return Array.isArray(raw)?raw:toArray(raw);
   }
-  // 3) 이전 스냅샷도 없으면(처음 사용) 현재 employees 반환
-  const raw=S.employees[sid]||[];
-  return Array.isArray(raw)?raw:toArray(raw);
+
+  // 3) 이전 스냅샷 없음 → k 이후 가장 오래된 스냅샷 사용
+  //    (미래 달을 조회하는 경우)
+  const futureKeys=Object.keys(S.empSnaps[sid])
+    .filter(sk=>sk>k)
+    .sort((a,b)=>a.localeCompare(b));
+  if(futureKeys.length>0){
+    const raw=S.empSnaps[sid][futureKeys[0]];
+    return Array.isArray(raw)?raw:toArray(raw);
+  }
+
+  // 4) 스냅샷 자체가 없음 (ensureSnapshots 전에 호출된 경우)
+  const emp=S.employees[sid]||[];
+  return Array.isArray(emp)?emp:toArray(emp);
 }
 
 // ── 직원 변경 후 스냅샷 전파 ─────────────────────────────────
-// prevEmployees: 변경 직전 직원 배열 → 이전 달 소급 스냅샷 생성용
 function propagateForward(sid, prevEmployees){
   if(!S.empSnaps[sid]) S.empSnaps[sid]={};
   const ck=ymKey(S.year,S.month);
 
-  // Step1. 이전 달 소급: prevEmployees로 스냅샷 없는 모든 이전 달 채우기
-  //        이미 스냅샷이 있는 달을 만나면 중단 (기존 기록 보호)
+  // Step1. prevEmployees로 스냅샷 없는 모든 이전 달 소급
   if(prevEmployees && Array.isArray(prevEmployees)){
     for(let back=1; back<=120; back++){
       let py=S.year, pm=S.month-back;
       while(pm<1){pm+=12;py--;}
       const pk=ymKey(py,pm);
-      if(S.empSnaps[sid][pk]) break;  // 기존 스냅샷 있음 → 중단
+      if(S.empSnaps[sid][pk]) break;
       S.empSnaps[sid][pk]=JSON.parse(JSON.stringify(prevEmployees));
     }
   }
@@ -820,6 +880,8 @@ function applyRemote(d){
   if(d.nextId)    S.nextId    = d.nextId;
   // 현재 선택 현장이 사라진 경우 첫 번째로 이동
   if(SITES.length && !SITES.find(x=>x.id===S.site)) S.site=SITES[0].id;
+  // Firebase 복원 후 스냅샷 보장 (없으면 현재달로 초기 생성)
+  ensureSnapshots();
   // 누락된 현장 슬롯 자동 보충
   SITES.forEach(s=>{
     if(!S.employees[s.id]) S.employees[s.id]=[];
@@ -954,7 +1016,7 @@ async function loadState(){
 
 // ── 테마 ──
 // ── 버전 정보 (여기만 수정하면 화면에 즉시 반영) ──
-const APP_VERSION = 'v3.9';
+const APP_VERSION = 'v4.0';
 const APP_DATE    = '2026-05-03';
 
 function applyVersion(){
@@ -996,22 +1058,36 @@ document.getElementById('cdlgNo').addEventListener('click',()=>{
 
 // ── 탭 ──
 // ── 헤더 인원 통계 갱신 (오늘 기준 전체 현장 합산) ──────────
-function updateHdrStats(){
-  // ★ 항상 오늘 날짜 기준 — 조회 중인 달(S.year/S.month)과 무관하게 고정
+// 헤더 통계 기준 날짜 (기본: 오늘)
+let _statDate = null;  // null = 오늘 자동
+
+function getStatDate(){
+  const inp = document.getElementById('statDateInp');
+  if(inp && inp.value) return inp.value;  // 'YYYY-MM-DD'
   const today = new Date();
-  const ty = today.getFullYear();
-  const tm = today.getMonth()+1;
-  const todayKey = dkey(ty, tm, today.getDate());
+  return dkey(today.getFullYear(), today.getMonth()+1, today.getDate());
+}
+function initStatDate(){
+  const today = new Date();
+  const td = dkey(today.getFullYear(), today.getMonth()+1, today.getDate());
+  const inp = document.getElementById('statDateInp');
+  if(inp && !inp.value) inp.value = td;
+}
+
+function updateHdrStats(){
+  const refDateKey = getStatDate();  // 'YYYY-MM-DD'
+  // 기준일의 연월 파싱
+  const [ry, rm] = refDateKey.split('-').map(Number);
   let totalAll=0, workAll=0, offAll=0;
   SITES.forEach(s=>{
-    // 오늘이 속한 달의 직원 목록 사용 (조회 달 아님)
-    const emps = getEmpsForMonth(s.id, ty, tm);
+    // 기준일 연월의 직원 목록 사용
+    const emps = getEmpsForMonth(s.id, ry, rm);
     const offs = S.offDays[s.id]||{};
     const abss = S.absDays[s.id]||{};
     totalAll += emps.length;
     emps.forEach(emp=>{
       const seid = String(+emp.id);
-      const isOff = (offs[seid]&&offs[seid][todayKey]) || (abss[seid]&&abss[seid][todayKey]);
+      const isOff = (offs[seid]&&offs[seid][refDateKey]) || (abss[seid]&&abss[seid][refDateKey]);
       if(isOff) offAll++; else workAll++;
     });
   });
@@ -1021,7 +1097,7 @@ function updateHdrStats(){
   if(sw) sw.textContent = workAll+'명';
   if(so) so.textContent = offAll+'명';
   if(st) st.textContent = totalAll+'명';
-  // 월 레이블도 갱신
+  // 월 레이블 갱신
   const lbl = document.getElementById('hdrMonthLbl');
   if(lbl) lbl.textContent = S.year+'년 '+S.month+'월';
 }
@@ -1261,6 +1337,15 @@ document.addEventListener('click',e=>{
 document.getElementById('btnTheme').addEventListener('click',toggleTheme);
 document.getElementById('btnHdrPrevMonth').addEventListener('click',()=>chMonth(-1));
 document.getElementById('btnHdrNextMonth').addEventListener('click',()=>chMonth(1));
+// 기준일 변경 → 통계 즉시 갱신
+document.getElementById('statDateInp').addEventListener('change', updateHdrStats);
+// 오늘 버튼
+document.getElementById('btnStatToday').addEventListener('click',()=>{
+  const today = new Date();
+  const inp = document.getElementById('statDateInp');
+  if(inp) inp.value = dkey(today.getFullYear(), today.getMonth()+1, today.getDate());
+  updateHdrStats();
+});
 document.getElementById('btnSiteMgr').addEventListener('click',openSiteMgrModal);
 document.getElementById('btnSiteMgrClose').addEventListener('click',()=>closeModal('siteMgrM'));
 document.getElementById('btnSiteAdd').addEventListener('click',addSite);
@@ -2032,8 +2117,10 @@ async function exportExcel(){
 (async()=>{
   setSyncUI('poll','🔄 데이터 불러오는 중...');
   await loadState();
+  ensureSnapshots();   // 로드 후 스냅샷 보장
   applyTheme(S.theme);
   applyVersion();
+  initStatDate();
   buildTabs();
   renderTable();
   startPolling();
