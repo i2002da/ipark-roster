@@ -663,27 +663,32 @@ function getEmpsForMonth(sid,y,m){
 function propagateForward(sid, prevEmployees){
   // prevEmployees: 변경 직전 직원 배열 (이전 달 스냅샷 소급 생성용)
   const ck=ymKey(S.year,S.month);
+  if(!S.empSnaps[sid]) S.empSnaps[sid]={};
 
-  // ── 이전 달 소급 스냅샷 생성 ──────────────────────────────
-  // 스냅샷이 없는 이전 달이 있으면 변경 전 상태(prevEmployees)로 채워넣음
-  // 이렇게 해야 이전 달 조회 시 현재 employees가 아닌 변경 전 목록이 사용됨
+  // ── 이전 달 소급 스냅샷: "경계 스냅샷" 1개만 생성 ──────────
+  // getEmpsForMonth가 "이전 달 중 가장 가까운 스냅샷"을 탐색하므로
+  // 현재달 바로 직전 달에 prevEmployees 스냅샷 1개를 두면
+  // 그보다 더 이전 달도 같은 스냅샷을 사용하게 됨.
+  // 단, 이미 스냅샷이 있는 달은 건드리지 않음.
   if(prevEmployees && Array.isArray(prevEmployees)){
-    // 현재 달 이전 6개월분 소급 처리 (필요한 범위만)
-    for(let back=1; back<=60; back++){
+    // 현재달 직전 달부터 역방향으로 탐색
+    // 이미 스냅샷이 있는 달을 만나면 그 앞은 이미 보호됨 → 중단
+    // 스냅샷이 없는 달들을 모두 prevEmployees로 채움
+    for(let back=1; back<=120; back++){
       let py=S.year, pm=S.month-back;
       while(pm<1){pm+=12;py--;}
       const pk=ymKey(py,pm);
-      // 이미 스냅샷이 있으면 건드리지 않음
-      if(S.empSnaps[sid][pk]) continue;
-      // 스냅샷이 없는 이전 달 → 변경 전 직원 목록으로 소급 생성
+      if(S.empSnaps[sid][pk]){
+        // 이미 스냅샷이 있는 달 발견 → 그 이전은 이미 보호됨
+        break;
+      }
+      // 스냅샷 없는 이전 달 → 변경 전 직원 목록으로 소급 생성
       S.empSnaps[sid][pk]=JSON.parse(JSON.stringify(prevEmployees));
-      // 가장 가까운 이전 달만 채우면 충분 (나머지는 getEmpsForMonth가 찾아줌)
-      break;
     }
   }
 
-  // ── 현재달 이후 스냅샷 삭제 후 현재달 새로 생성 ───────────
-  Object.keys(S.empSnaps[sid]).forEach(k=>{if(k>=ck)delete S.empSnaps[sid][k];});
+  // ── 현재달 이상 스냅샷 삭제 후 현재달 새로 생성 ───────────
+  Object.keys(S.empSnaps[sid]).forEach(k=>{ if(k>=ck) delete S.empSnaps[sid][k]; });
   if(!Array.isArray(S.employees[sid])) S.employees[sid]=toArray(S.employees[sid]);
   S.empSnaps[sid][ck]=JSON.parse(JSON.stringify(S.employees[sid]));
 }
@@ -954,7 +959,7 @@ async function loadState(){
 
 // ── 테마 ──
 // ── 버전 정보 (여기만 수정하면 화면에 즉시 반영) ──
-const APP_VERSION = 'v3.7';
+const APP_VERSION = 'v3.8';
 const APP_DATE    = '2026-05-03';
 
 function applyVersion(){
@@ -997,21 +1002,21 @@ document.getElementById('cdlgNo').addEventListener('click',()=>{
 // ── 탭 ──
 // ── 헤더 인원 통계 갱신 (오늘 기준 전체 현장 합산) ──────────
 function updateHdrStats(){
+  // ★ 항상 오늘 날짜 기준 — 조회 중인 달(S.year/S.month)과 무관하게 고정
   const today = new Date();
-  const todayKey = dkey(today.getFullYear(), today.getMonth()+1, today.getDate());
+  const ty = today.getFullYear();
+  const tm = today.getMonth()+1;
+  const todayKey = dkey(ty, tm, today.getDate());
   let totalAll=0, workAll=0, offAll=0;
   SITES.forEach(s=>{
-    const emps = getEmpsForMonth(s.id, S.year, S.month);
+    // 오늘이 속한 달의 직원 목록 사용 (조회 달 아님)
+    const emps = getEmpsForMonth(s.id, ty, tm);
     const offs = S.offDays[s.id]||{};
     const abss = S.absDays[s.id]||{};
-    // 현재 달 기준 오늘(또는 해당 달 마지막 날)
-    const refKey = (ymKey(S.year,S.month)===ymKey(today.getFullYear(),today.getMonth()+1))
-      ? todayKey
-      : dkey(S.year, S.month, dim(S.year, S.month));
     totalAll += emps.length;
     emps.forEach(emp=>{
       const seid = String(+emp.id);
-      const isOff = (offs[seid]&&offs[seid][refKey]) || (abss[seid]&&abss[seid][refKey]);
+      const isOff = (offs[seid]&&offs[seid][todayKey]) || (abss[seid]&&abss[seid][todayKey]);
       if(isOff) offAll++; else workAll++;
     });
   });
