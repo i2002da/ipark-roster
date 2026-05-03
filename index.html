@@ -99,7 +99,22 @@
 body{font-family:'Noto Sans KR',sans-serif;background:var(--bg-page);color:var(--tx2);min-height:100vh;transition:background .2s,color .2s}
 
 /* 헤더 */
-.hdr{background:var(--bg-hdr);border-bottom:none;box-shadow:0 2px 12px rgba(10,35,66,.18);padding:0 20px;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;height:62px}
+.hdr{background:var(--bg-hdr);border-bottom:none;box-shadow:0 2px 12px rgba(10,35,66,.18);padding:0 16px;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;height:62px;gap:10px}
+/* 헤더 인원 통계 */
+.hdr-stats{display:flex;align-items:center;gap:6px;padding:0 4px;flex-shrink:0}
+.hdr-stat{display:flex;flex-direction:column;align-items:center;padding:4px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.18);min-width:70px;cursor:default;transition:background .15s}
+.hdr-stat:hover{background:rgba(255,255,255,.1)}
+.hdr-stat-lbl{font-size:9px;color:rgba(255,255,255,.55);letter-spacing:.5px;font-weight:500}
+.hdr-stat-val{font-size:16px;font-weight:800;letter-spacing:-.5px;line-height:1.2}
+.hdr-stat-work .hdr-stat-val{color:#4ade80}
+.hdr-stat-off  .hdr-stat-val{color:#fca5a5}
+.hdr-stat-tot  .hdr-stat-val{color:#ffffff}
+.hdr-stat-div{width:1px;height:32px;background:rgba(255,255,255,.18);flex-shrink:0}
+/* 헤더 월 이동 버튼 */
+.hdr-mo-nav{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.hdr-mo-btn{width:26px;height:26px;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.1);color:rgba(255,255,255,.85);border-radius:5px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;line-height:1;font-family:'Noto Sans KR',sans-serif}
+.hdr-mo-btn:hover{background:rgba(255,255,255,.25);border-color:rgba(255,255,255,.6)}
+.hdr-mo-lbl{font-size:12px;font-weight:700;color:rgba(255,255,255,.9);min-width:68px;text-align:center}
 .hdr-logo{display:flex;align-items:center;gap:12px}
 .logo-img{height:34px;object-fit:contain}
 .hdr-texts{display:flex;flex-direction:column;gap:1px}
@@ -122,55 +137,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg-page);color:var(-
 .tab-btn:hover{color:var(--acc);background:var(--bg-hov)}
 .tab-btn.active{color:var(--acc);border-bottom-color:var(--acc);font-weight:700}
 .tab-bdg{display:inline-block;background:var(--acc-bg);color:var(--acc-tx);font-size:10px;padding:1px 7px;border-radius:10px;margin-left:6px;font-weight:600}
-/* ── 상단 인원 합계 요약 바 ── */
-.summary-bar{
-  display:flex;align-items:center;gap:0;
-  background:#ffffff;border-bottom:2px solid #c2d4e8;
-  padding:0 20px;overflow-x:auto;
-}
-[data-theme="dark"] .summary-bar{background:#101e30;border-color:#1e3550}
-.summary-bar::-webkit-scrollbar{height:3px}
-.summary-bar::-webkit-scrollbar-thumb{background:var(--bd-m);border-radius:2px}
-.summ-item{
-  display:flex;align-items:center;gap:10px;
-  padding:10px 18px;border-right:1px solid var(--bd-s);
-  white-space:nowrap;flex-shrink:0;
-  position:relative;
-}
-.summ-item:last-child{border-right:none}
-.summ-item.active-site{background:#f0f7ff}
-[data-theme="dark"] .summ-item.active-site{background:#0a1e38}
-.summ-item.active-site::after{
-  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:#1a6fc4;
-}
-.summ-site{font-size:12px;font-weight:600;color:var(--tx3)}
-.summ-site.active-site-tx{color:#0a2342}
-[data-theme="dark"] .summ-site.active-site-tx{color:#7ac8f0}
-.summ-badges{display:flex;align-items:center;gap:6px}
-.summ-bdg{
-  display:flex;align-items:center;gap:3px;
-  padding:3px 9px;border-radius:12px;font-size:11px;font-weight:600;
-}
-.summ-total{background:#ddeeff;color:#0a2342}
-[data-theme="dark"] .summ-total{background:#0d2a44;color:#7ac8f0}
-.summ-present{background:#d4edda;color:#1a5c30}
-[data-theme="dark"] .summ-present{background:#0a2010;color:#4ade80}
-.summ-off{background:#ffd5d5;color:#8b1a1a}
-[data-theme="dark"] .summ-off{background:#2a0a0a;color:#f87171}
-.summ-abs{background:#ddeeff;color:#0d5aa7}
-[data-theme="dark"] .summ-abs{background:#0a1e38;color:#7ac8f0}
-.summ-lbl{font-size:9px;font-weight:400;opacity:.75}
-/* 전체 합계 칩 */
-.summ-total-all{
-  margin-left:auto;padding:0 20px;display:flex;align-items:center;gap:12px;
-  border-left:2px solid var(--bd-m);flex-shrink:0;
-}
-.summ-all-chip{
-  display:flex;align-items:center;gap:4px;
-  padding:4px 12px;border-radius:14px;font-size:12px;font-weight:700;
-  background:#0a2342;color:#b8d4f0;
-}
-[data-theme="dark"] .summ-all-chip{background:#1e3550;color:#7ac8f0}
 .content{padding:20px}
 
 /* 버튼 */
@@ -442,7 +408,32 @@ thead th.c-tot-h,thead th.c-note-h{position:sticky;z-index:3;background:#0a2342;
       <div class="logo-s">천안 IPC 통합현장</div>
     </div>
   </div>
+  <!-- 헤더 중앙: 인원 통계 (오늘 기준 전체 현장 합산) -->
+  <div class="hdr-stats" id="hdrStats">
+    <div class="hdr-stat hdr-stat-work" title="전체 현장 오늘 근무 인원">
+      <span class="hdr-stat-lbl">근무</span>
+      <span class="hdr-stat-val" id="statWork">--</span>
+    </div>
+    <div class="hdr-stat-div"></div>
+    <div class="hdr-stat hdr-stat-off" title="전체 현장 오늘 휴무 인원">
+      <span class="hdr-stat-lbl">휴무</span>
+      <span class="hdr-stat-val" id="statOff">--</span>
+    </div>
+    <div class="hdr-stat-div"></div>
+    <div class="hdr-stat hdr-stat-tot" title="전체 현장 총 등록 인원">
+      <span class="hdr-stat-lbl">총원</span>
+      <span class="hdr-stat-val" id="statTot">--</span>
+    </div>
+  </div>
+
+  <!-- 헤더 우측: 월이동 + 동기화 + 버튼들 -->
   <div class="hdr-r">
+    <!-- 월 이동 (헤더 배치) -->
+    <div class="hdr-mo-nav">
+      <button class="hdr-mo-btn" id="btnHdrPrevMonth">&#8249;</button>
+      <span class="hdr-mo-lbl" id="hdrMonthLbl">-- 년 --월</span>
+      <button class="hdr-mo-btn" id="btnHdrNextMonth">&#8250;</button>
+    </div>
     <div style="display:flex;align-items:center;gap:6px;padding:5px 10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px">
       <div class="sync-dot" id="syncDot"></div>
       <span class="sync-label" id="syncLabel">연결 중...</span>
@@ -461,7 +452,6 @@ thead th.c-tot-h,thead th.c-note-h{position:sticky;z-index:3;background:#0a2342;
   </div>
 </div>
 <div class="tab-nav" id="tabNav"></div>
-<div class="summary-bar" id="summaryBar"></div>
 <div class="content" id="mainContent"></div>
 
 <!-- 동기화 상태 토스트 -->
@@ -971,72 +961,44 @@ document.getElementById('cdlgNo').addEventListener('click',()=>{
 });
 
 // ── 탭 ──
+// ── 헤더 인원 통계 갱신 (오늘 기준 전체 현장 합산) ──────────
+function updateHdrStats(){
+  const today = new Date();
+  const todayKey = dkey(today.getFullYear(), today.getMonth()+1, today.getDate());
+  let totalAll=0, workAll=0, offAll=0;
+  SITES.forEach(s=>{
+    const emps = getEmpsForMonth(s.id, S.year, S.month);
+    const offs = S.offDays[s.id]||{};
+    const abss = S.absDays[s.id]||{};
+    // 현재 달 기준 오늘(또는 해당 달 마지막 날)
+    const refKey = (ymKey(S.year,S.month)===ymKey(today.getFullYear(),today.getMonth()+1))
+      ? todayKey
+      : dkey(S.year, S.month, dim(S.year, S.month));
+    totalAll += emps.length;
+    emps.forEach(emp=>{
+      const seid = String(+emp.id);
+      const isOff = (offs[seid]&&offs[seid][refKey]) || (abss[seid]&&abss[seid][refKey]);
+      if(isOff) offAll++; else workAll++;
+    });
+  });
+  const sw = document.getElementById('statWork');
+  const so = document.getElementById('statOff');
+  const st = document.getElementById('statTot');
+  if(sw) sw.textContent = workAll+'명';
+  if(so) so.textContent = offAll+'명';
+  if(st) st.textContent = totalAll+'명';
+  // 월 레이블도 갱신
+  const lbl = document.getElementById('hdrMonthLbl');
+  if(lbl) lbl.textContent = S.year+'년 '+S.month+'월';
+}
+
 function buildTabs(){
   const tabHtml = SITES.map(s=>`
     <button class="tab-btn ${s.id===S.site?'active':''}" data-action="tab" data-sid="${s.id}">
       ${s.dispLabel}<span class="tab-bdg">${getEmpsForMonth(s.id,S.year,S.month).length}명</span>
     </button>`).join('');
   document.getElementById('tabNav').innerHTML = tabHtml;
-  buildSummaryBar();
-}
-
-// ── 현장별 인원 합계 요약 바 ──────────────────────────────
-function buildSummaryBar(){
-  const y=S.year, m=S.month;
-  const monthPfx=ymKey(y,m);  // 'YYYYMM'
-
-  let totalAll=0, presentAll=0, offAll=0, absAll=0;
-
-  const items = SITES.map(s=>{
-    const emps  = getEmpsForMonth(s.id,y,m);
-    const offs  = S.offDays[s.id]||{};
-    const abss  = S.absDays[s.id]||{};
-    const total = emps.length;
-    totalAll += total;
-
-    // 해당 달에 하루라도 휴무/미근무인 직원 수 (중복 제거)
-    // → 오늘 날짜 기준 누적 카운트보다 "이번 달 총 근무 가능 일수 대비" 보다
-    //   직관적인 표시: 총인원 / 오늘의 근무인원 / 오늘의 휴무 / 오늘의 미근무
-    const today = new Date();
-    const todayKey = dkey(today.getFullYear(), today.getMonth()+1, today.getDate());
-    // 현재 달이 아니면 마지막 날 기준
-    const refKey = (ymKey(y,m) === ymKey(today.getFullYear(), today.getMonth()+1))
-      ? todayKey
-      : dkey(y, m, dim(y,m));
-
-    let offCnt=0, absCnt=0, presentCnt=0;
-    emps.forEach(emp=>{
-      const seid=String(+emp.id);
-      const hasOff = offs[seid]&&offs[seid][refKey];
-      const hasAbs = abss[seid]&&abss[seid][refKey];
-      if(hasOff)       offCnt++;
-      else if(hasAbs)  absCnt++;
-      else             presentCnt++;
-    });
-    offAll     += offCnt;
-    absAll     += absCnt;
-    presentAll += presentCnt;
-
-    const isActive = s.id===S.site;
-    return `<div class="summ-item${isActive?' active-site':''}">
-      <span class="summ-site${isActive?' active-site-tx':''}">${escHtml(s.dispLabel)}</span>
-      <div class="summ-badges">
-        <span class="summ-bdg summ-total"><span class="summ-lbl">총</span>${total}명</span>
-        <span class="summ-bdg summ-present"><span class="summ-lbl">근무</span>${presentCnt}명</span>
-        ${offCnt>0?`<span class="summ-bdg summ-off"><span class="summ-lbl">휴무</span>${offCnt}명</span>`:''}
-        ${absCnt>0?`<span class="summ-bdg summ-abs"><span class="summ-lbl">미근무</span>${absCnt}명</span>`:''}
-      </div>
-    </div>`;
-  }).join('');
-
-  // 전체 합계
-  const totalChip = `<div class="summ-total-all">
-    <span style="font-size:11px;color:var(--tx4)">전체 합계</span>
-    <span class="summ-all-chip">총 ${totalAll}명 &nbsp;|&nbsp; 근무 ${presentAll}명 &nbsp;|&nbsp; 휴무 ${offAll}명 &nbsp;|&nbsp; 미근무 ${absAll}명</span>
-  </div>`;
-
-  const bar = document.getElementById('summaryBar');
-  if(bar) bar.innerHTML = items + totalChip;
+  updateHdrStats();
 }
 
 // ── 테이블 렌더 ──
@@ -1088,11 +1050,6 @@ function renderTable(){
     <div class="ctrl">
       <div class="ctrl-l">
         <span class="site-ttl">${site.fullName}</span>
-        <div class="mo-nav">
-          <button class="mo-btn" data-action="prevMonth">&#8249;</button>
-          <span class="mo-lbl">${y}년 ${m}월</span>
-          <button class="mo-btn" data-action="nextMonth">&#8250;</button>
-        </div>
         ${isPast?'<span style="font-size:11px;color:#f87171;background:#2a0a0a;padding:2px 8px;border-radius:4px">📌 과거 기록</span>':''}
       </div>
       <button class="btn btn-bulk" data-action="toggleBulk">📋 일괄 휴무</button>
@@ -1202,7 +1159,7 @@ function renderTable(){
     </div>
   `;
   setupDragEvents();
-  buildSummaryBar();  // 근무 현황 갱신
+  updateHdrStats();
 }
 
 // ── 우클릭(contextmenu)으로 현장미근무 팝업 열기 ──
@@ -1267,6 +1224,8 @@ document.addEventListener('click',e=>{
 
 // ── 정적 DOM 버튼 직접 연결 ──
 document.getElementById('btnTheme').addEventListener('click',toggleTheme);
+document.getElementById('btnHdrPrevMonth').addEventListener('click',()=>chMonth(-1));
+document.getElementById('btnHdrNextMonth').addEventListener('click',()=>chMonth(1));
 document.getElementById('btnSiteMgr').addEventListener('click',openSiteMgrModal);
 document.getElementById('btnSiteMgrClose').addEventListener('click',()=>closeModal('siteMgrM'));
 document.getElementById('btnSiteAdd').addEventListener('click',addSite);
@@ -1287,7 +1246,16 @@ document.addEventListener('click',e=>{
 });
 
 // ── 기능 함수 ──
-function chMonth(d){S.month+=d;if(S.month>12){S.month=1;S.year++;}if(S.month<1){S.month=12;S.year--;}buildTabs();renderTable();}
+function chMonth(d){
+  S.month+=d;
+  if(S.month>12){S.month=1;S.year++;}
+  if(S.month<1){S.month=12;S.year--;}
+  buildTabs();
+  renderTable();
+  // hdrMonthLbl 즉시 갱신
+  const lbl=document.getElementById('hdrMonthLbl');
+  if(lbl) lbl.textContent=S.year+'년 '+S.month+'월';
+}
 
 function bulkQuick(type){
   document.querySelectorAll('#bulkDates .bdate').forEach(btn=>{
