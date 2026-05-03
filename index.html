@@ -579,7 +579,7 @@ let S={
   absDays:{s5:{},s6:{},sg:{}},
   notes:{s5:{},s6:{},sg:{}},
   holidays:{...DEF_HOL},
-  notices:{s5:'',s6:'',sg:''},
+  notices:{s5:{},s6:{},sg:{}},  // notices[site][ymKey] = '문자열'
   editSite:null, editId:null,
   nextId:{s5:18,s6:17,sg:12},
   theme:'light'
@@ -732,7 +732,17 @@ function applyRemote(d){
   if(d.absDays)   S.absDays   = d.absDays;
   if(d.notes)     S.notes     = d.notes;
   if(d.holidays)  S.holidays  = d.holidays;
-  if(d.notices)   S.notices   = d.notices;
+  if(d.notices){
+    // 구버전 호환: notices[site]='문자열' → notices[site]={} 로 마이그레이션
+    const n=d.notices;
+    Object.keys(n).forEach(sid=>{
+      if(typeof n[sid]==='string'){
+        // 이전 형식: 문자열을 '000000' 키로 보존
+        n[sid]= n[sid] ? {'000000': n[sid]} : {};
+      }
+    });
+    S.notices = n;
+  }
   if(d.nextId)    S.nextId    = d.nextId;
   // 현재 선택 현장이 사라진 경우 첫 번째로 이동
   if(SITES.length && !SITES.find(x=>x.id===S.site)) S.site=SITES[0].id;
@@ -743,7 +753,7 @@ function applyRemote(d){
     if(!S.offDays[s.id])   S.offDays[s.id]={};
     if(!S.absDays[s.id])   S.absDays[s.id]={};
     if(!S.notes[s.id])     S.notes[s.id]={};
-    if(S.notices[s.id]===undefined) S.notices[s.id]='';
+    if(!S.notices[s.id]||typeof S.notices[s.id]==='string') S.notices[s.id]={};
     if(!S.nextId[s.id]||isNaN(+S.nextId[s.id])){
       const cur=S.employees[s.id]||[];
       S.nextId[s.id]=cur.length>0 ? Math.max(...cur.map(e=>+e.id))+1 : 1;
@@ -870,7 +880,7 @@ async function loadState(){
 
 // ── 테마 ──
 // ── 버전 정보 (여기만 수정하면 화면에 즉시 반영) ──
-const APP_VERSION = 'v3.4';
+const APP_VERSION = 'v3.5';
 const APP_DATE    = '2026-05-03';
 
 function applyVersion(){
@@ -960,7 +970,10 @@ function renderTable(){
     return `<span class="${c}" data-action="bdate" data-key="${x.k}">${x.d}(${WD[x.w]})</span>`;
   }).join('');
 
-  const noticeText=S.notices[S.site]||'';
+  // 공지사항: 현재 달(ymKey) 기반 접근
+  const _noticeYm=ymKey(S.year,S.month);
+  const _noticeSiteData=S.notices[S.site]||{};
+  const noticeText=(typeof _noticeSiteData==='object'?_noticeSiteData[_noticeYm]||'':_noticeSiteData)||'';
 
   document.getElementById('mainContent').innerHTML=`
     <div class="ctrl">
@@ -1066,7 +1079,7 @@ function renderTable(){
 
     <div class="nb-wrap">
       <div class="nb-hdr">
-        <span class="nb-title">📌 공지사항</span>
+        <span class="nb-title">📌 공지사항 <span style="font-size:11px;font-weight:400;color:var(--tx4)">${y}년 ${m}월</span></span>
         <button class="btn btn-out" style="font-size:11px;padding:4px 10px" data-action="toggleNotice">✏️ 편집</button>
       </div>
       <div class="nb-view" id="nbView">${escHtml(noticeText)||'<span style="color:var(--tx4);font-style:italic">공지사항을 입력하려면 편집 버튼을 클릭하세요.</span>'}</div>
@@ -1439,7 +1452,7 @@ function addSite(){
   S.offDays[newId]    = {};
   S.absDays[newId]    = {};
   S.notes[newId]      = {};
-  S.notices[newId]    = '';
+  S.notices[newId]    = {};
   S.nextId[newId]     = 1;   // ← 신규 현장 nextId 명시 초기화
   // UI 전환 및 저장
   S.site = newId;
@@ -1500,11 +1513,21 @@ function removeHol(k){delete S.holidays[k];delete S.holidays[k+'_custom'];saveSt
 function toggleNotice(){
   const v=document.getElementById('nbView'),ed=document.getElementById('nbEditor'),ta=document.getElementById('nbTa');
   if(ed.style.display==='block'){v.style.display='block';ed.style.display='none';}
-  else{ta.value=S.notices[S.site]||'';v.style.display='none';ed.style.display='block';ta.focus();}
+  else{
+    const ym=ymKey(S.year,S.month);
+    const nd=S.notices[S.site]||{};
+    ta.value=(typeof nd==='object'?nd[ym]||'':nd)||'';
+    v.style.display='none';ed.style.display='block';ta.focus();
+  }
 }
 function cancelNotice(){document.getElementById('nbView').style.display='block';document.getElementById('nbEditor').style.display='none';}
 function saveNotice(){
-  const text=document.getElementById('nbTa').value;S.notices[S.site]=text;saveState();
+  const text=document.getElementById('nbTa').value;
+  const ym=ymKey(S.year,S.month);
+  if(!S.notices[S.site]||typeof S.notices[S.site]==='string') S.notices[S.site]={};
+  if(text.trim()) S.notices[S.site][ym]=text;
+  else delete S.notices[S.site][ym];
+  saveState();
   const v=document.getElementById('nbView');
   v.innerHTML=escHtml(text)||'<span style="color:var(--tx4);font-style:italic">공지사항을 입력하려면 편집 버튼을 클릭하세요.</span>';
   v.style.display='block';document.getElementById('nbEditor').style.display='none';
@@ -1581,7 +1604,10 @@ async function exportPDF(){
     const TITLE_H=54,NOTICE_PAD=12;
     const NOTE_SZ=12,NOTE_LH=NOTE_SZ*1.8;
     let noticeLines=[];
-    const noticeText=(S.notices[S.site]||'').trim();
+    // 공지사항: 현재 달(ymKey) 기반
+    const _pdfYm=ymKey(y,m);
+    const _pdfNoticeData=S.notices[S.site]||{};
+    const noticeText=(typeof _pdfNoticeData==='object'?_pdfNoticeData[_pdfYm]||'':_pdfNoticeData||'').trim();
     if(noticeText){
       const tmp=document.createElement('canvas').getContext('2d');
       tmp.font=NOTE_SZ+'px "Noto Sans KR",sans-serif';
