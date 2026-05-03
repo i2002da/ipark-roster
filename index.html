@@ -642,14 +642,48 @@ function escHtml(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').rep
 
 function getEmpsForMonth(sid,y,m){
   const k=ymKey(y,m);
-  const raw=(S.empSnaps[sid]&&S.empSnaps[sid][k])||S.employees[sid]||[];
-  // Firebase 복원 후 배열이 아닌 객체로 올 수 있으므로 항상 변환
-  return Array.isArray(raw) ? raw : toArray(raw);
+  if(S.empSnaps[sid]&&S.empSnaps[sid][k]){
+    const raw=S.empSnaps[sid][k];
+    return Array.isArray(raw)?raw:toArray(raw);
+  }
+  // 해당 달 스냅샷 없음 → 현재달보다 이전이면 가장 가까운 이전 스냅샷 탐색
+  const curKey=ymKey(S.year,S.month);
+  if(k<curKey && S.empSnaps[sid]){
+    // 해당 달보다 이전 스냅샷 중 가장 가까운 것 사용
+    const keys=Object.keys(S.empSnaps[sid]).filter(sk=>sk<=k).sort((a,b)=>b.localeCompare(a));
+    if(keys.length>0){
+      const raw=S.empSnaps[sid][keys[0]];
+      return Array.isArray(raw)?raw:toArray(raw);
+    }
+  }
+  // 스냅샷 없음 → 현재 employees 사용
+  const raw=S.employees[sid]||[];
+  return Array.isArray(raw)?raw:toArray(raw);
 }
-function propagateForward(sid){
+function propagateForward(sid, prevEmployees){
+  // prevEmployees: 변경 직전 직원 배열 (이전 달 스냅샷 소급 생성용)
   const ck=ymKey(S.year,S.month);
+
+  // ── 이전 달 소급 스냅샷 생성 ──────────────────────────────
+  // 스냅샷이 없는 이전 달이 있으면 변경 전 상태(prevEmployees)로 채워넣음
+  // 이렇게 해야 이전 달 조회 시 현재 employees가 아닌 변경 전 목록이 사용됨
+  if(prevEmployees && Array.isArray(prevEmployees)){
+    // 현재 달 이전 6개월분 소급 처리 (필요한 범위만)
+    for(let back=1; back<=60; back++){
+      let py=S.year, pm=S.month-back;
+      while(pm<1){pm+=12;py--;}
+      const pk=ymKey(py,pm);
+      // 이미 스냅샷이 있으면 건드리지 않음
+      if(S.empSnaps[sid][pk]) continue;
+      // 스냅샷이 없는 이전 달 → 변경 전 직원 목록으로 소급 생성
+      S.empSnaps[sid][pk]=JSON.parse(JSON.stringify(prevEmployees));
+      // 가장 가까운 이전 달만 채우면 충분 (나머지는 getEmpsForMonth가 찾아줌)
+      break;
+    }
+  }
+
+  // ── 현재달 이후 스냅샷 삭제 후 현재달 새로 생성 ───────────
   Object.keys(S.empSnaps[sid]).forEach(k=>{if(k>=ck)delete S.empSnaps[sid][k];});
-  // employees[sid]가 배열인지 보장 (Firebase 복원 직후 호출될 수 있음)
   if(!Array.isArray(S.employees[sid])) S.employees[sid]=toArray(S.employees[sid]);
   S.empSnaps[sid][ck]=JSON.parse(JSON.stringify(S.employees[sid]));
 }
@@ -920,7 +954,7 @@ async function loadState(){
 
 // ── 테마 ──
 // ── 버전 정보 (여기만 수정하면 화면에 즉시 반영) ──
-const APP_VERSION = 'v3.6';
+const APP_VERSION = 'v3.7';
 const APP_DATE    = '2026-05-03';
 
 function applyVersion(){
@@ -1183,8 +1217,9 @@ function setupDragEvents(){
       const ti=+row.dataset.idx;
       if(dragSrcIdx===null||dragSrcIdx===ti){dragSrcIdx=null;return;}
       const arr=S.employees[S.site];
+      const prevEmps=JSON.parse(JSON.stringify(arr));
       arr.splice(ti,0,arr.splice(dragSrcIdx,1)[0]);
-      propagateForward(S.site);dragSrcIdx=null;saveState();renderTable();
+      propagateForward(S.site,prevEmps);dragSrcIdx=null;saveState();renderTable();
     });
   });
 }
@@ -1308,17 +1343,17 @@ function addEmp(){
   const dept=document.getElementById('nDept').value.trim();
   const name=document.getElementById('nName').value.trim();
   if(!name){alert('성명을 입력하세요');return;}
-  // nextId가 없는 현장(신규 추가 현장)은 현재 직원 수+1로 초기화
   if(!S.nextId[S.site]||isNaN(+S.nextId[S.site])){
     const cur=S.employees[S.site]||[];
-    S.nextId[S.site]=cur.length>0
-      ? Math.max(...cur.map(e=>+e.id))+1
-      : 1;
+    S.nextId[S.site]=cur.length>0 ? Math.max(...cur.map(e=>+e.id))+1 : 1;
   }
   if(!S.employees[S.site]) S.employees[S.site]=[];
+  // 변경 전 직원 목록 저장 (이전 달 소급 스냅샷용)
+  const prevEmps=JSON.parse(JSON.stringify(S.employees[S.site]));
   const id=+S.nextId[S.site]; S.nextId[S.site]=id+1;
   S.employees[S.site].push({id,dept,name});
-  propagateForward(S.site);saveState();closeModal('addEmpM');buildTabs();renderTable();
+  propagateForward(S.site, prevEmps);
+  saveState();closeModal('addEmpM');buildTabs();renderTable();
 }
 function openEditEmpM(sid,eid){
   const emp=S.employees[sid].find(e=>+e.id===eid);
@@ -1331,18 +1366,23 @@ function openEditEmpM(sid,eid){
 function saveEmp(){
   const emp=S.employees[S.editSite].find(e=>+e.id===S.editId);
   if(!emp)return;
+  // 이름/구분 변경은 이전 달 인원수에 영향 없으므로 prevEmps 불필요
   emp.dept=document.getElementById('eDept').value.trim();
   emp.name=document.getElementById('eName').value.trim();
-  propagateForward(S.editSite);saveState();closeModal('editEmpM');buildTabs();renderTable();
+  propagateForward(S.editSite, null);
+  saveState();closeModal('editEmpM');buildTabs();renderTable();
 }
 // ★ confirm() 대신 커스텀 다이얼로그 사용
 async function delEmp(){
   const sid=S.editSite,eid=+S.editId;
   if(!sid||isNaN(eid))return;
-  const ok=await cdlgShow('이 직원을 삭제하시겠습니까?\n현재달 이후의 근무표에서만 삭제됩니다.');
+  const ok=await cdlgShow('이 직원을 삭제하시겠습니까?\n변경한 달 이후에만 적용되며 이전 달 기록은 보존됩니다.');
   if(!ok)return;
+  // 변경 전 직원 목록 저장 (이전 달 소급 스냅샷용)
+  const prevEmps=JSON.parse(JSON.stringify(S.employees[sid]));
   S.employees[sid]=S.employees[sid].filter(e=>+e.id!==eid);
-  propagateForward(sid);saveState();closeModal('editEmpM');buildTabs();renderTable();
+  propagateForward(sid, prevEmps);
+  saveState();closeModal('editEmpM');buildTabs();renderTable();
 }
 
 // ── 현장미근무 팝업 ──
