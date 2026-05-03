@@ -122,6 +122,55 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg-page);color:var(-
 .tab-btn:hover{color:var(--acc);background:var(--bg-hov)}
 .tab-btn.active{color:var(--acc);border-bottom-color:var(--acc);font-weight:700}
 .tab-bdg{display:inline-block;background:var(--acc-bg);color:var(--acc-tx);font-size:10px;padding:1px 7px;border-radius:10px;margin-left:6px;font-weight:600}
+/* ── 상단 인원 합계 요약 바 ── */
+.summary-bar{
+  display:flex;align-items:center;gap:0;
+  background:#ffffff;border-bottom:2px solid #c2d4e8;
+  padding:0 20px;overflow-x:auto;
+}
+[data-theme="dark"] .summary-bar{background:#101e30;border-color:#1e3550}
+.summary-bar::-webkit-scrollbar{height:3px}
+.summary-bar::-webkit-scrollbar-thumb{background:var(--bd-m);border-radius:2px}
+.summ-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 18px;border-right:1px solid var(--bd-s);
+  white-space:nowrap;flex-shrink:0;
+  position:relative;
+}
+.summ-item:last-child{border-right:none}
+.summ-item.active-site{background:#f0f7ff}
+[data-theme="dark"] .summ-item.active-site{background:#0a1e38}
+.summ-item.active-site::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:#1a6fc4;
+}
+.summ-site{font-size:12px;font-weight:600;color:var(--tx3)}
+.summ-site.active-site-tx{color:#0a2342}
+[data-theme="dark"] .summ-site.active-site-tx{color:#7ac8f0}
+.summ-badges{display:flex;align-items:center;gap:6px}
+.summ-bdg{
+  display:flex;align-items:center;gap:3px;
+  padding:3px 9px;border-radius:12px;font-size:11px;font-weight:600;
+}
+.summ-total{background:#ddeeff;color:#0a2342}
+[data-theme="dark"] .summ-total{background:#0d2a44;color:#7ac8f0}
+.summ-present{background:#d4edda;color:#1a5c30}
+[data-theme="dark"] .summ-present{background:#0a2010;color:#4ade80}
+.summ-off{background:#ffd5d5;color:#8b1a1a}
+[data-theme="dark"] .summ-off{background:#2a0a0a;color:#f87171}
+.summ-abs{background:#ddeeff;color:#0d5aa7}
+[data-theme="dark"] .summ-abs{background:#0a1e38;color:#7ac8f0}
+.summ-lbl{font-size:9px;font-weight:400;opacity:.75}
+/* 전체 합계 칩 */
+.summ-total-all{
+  margin-left:auto;padding:0 20px;display:flex;align-items:center;gap:12px;
+  border-left:2px solid var(--bd-m);flex-shrink:0;
+}
+.summ-all-chip{
+  display:flex;align-items:center;gap:4px;
+  padding:4px 12px;border-radius:14px;font-size:12px;font-weight:700;
+  background:#0a2342;color:#b8d4f0;
+}
+[data-theme="dark"] .summ-all-chip{background:#1e3550;color:#7ac8f0}
 .content{padding:20px}
 
 /* 버튼 */
@@ -412,6 +461,7 @@ thead th.c-tot-h,thead th.c-note-h{position:sticky;z-index:3;background:#0a2342;
   </div>
 </div>
 <div class="tab-nav" id="tabNav"></div>
+<div class="summary-bar" id="summaryBar"></div>
 <div class="content" id="mainContent"></div>
 
 <!-- 동기화 상태 토스트 -->
@@ -880,7 +930,7 @@ async function loadState(){
 
 // ── 테마 ──
 // ── 버전 정보 (여기만 수정하면 화면에 즉시 반영) ──
-const APP_VERSION = 'v3.5';
+const APP_VERSION = 'v3.6';
 const APP_DATE    = '2026-05-03';
 
 function applyVersion(){
@@ -922,12 +972,71 @@ document.getElementById('cdlgNo').addEventListener('click',()=>{
 
 // ── 탭 ──
 function buildTabs(){
-  // SITES는 applyRemote에서 항상 S.sites와 동기화됨
   const tabHtml = SITES.map(s=>`
     <button class="tab-btn ${s.id===S.site?'active':''}" data-action="tab" data-sid="${s.id}">
       ${s.dispLabel}<span class="tab-bdg">${getEmpsForMonth(s.id,S.year,S.month).length}명</span>
     </button>`).join('');
   document.getElementById('tabNav').innerHTML = tabHtml;
+  buildSummaryBar();
+}
+
+// ── 현장별 인원 합계 요약 바 ──────────────────────────────
+function buildSummaryBar(){
+  const y=S.year, m=S.month;
+  const monthPfx=ymKey(y,m);  // 'YYYYMM'
+
+  let totalAll=0, presentAll=0, offAll=0, absAll=0;
+
+  const items = SITES.map(s=>{
+    const emps  = getEmpsForMonth(s.id,y,m);
+    const offs  = S.offDays[s.id]||{};
+    const abss  = S.absDays[s.id]||{};
+    const total = emps.length;
+    totalAll += total;
+
+    // 해당 달에 하루라도 휴무/미근무인 직원 수 (중복 제거)
+    // → 오늘 날짜 기준 누적 카운트보다 "이번 달 총 근무 가능 일수 대비" 보다
+    //   직관적인 표시: 총인원 / 오늘의 근무인원 / 오늘의 휴무 / 오늘의 미근무
+    const today = new Date();
+    const todayKey = dkey(today.getFullYear(), today.getMonth()+1, today.getDate());
+    // 현재 달이 아니면 마지막 날 기준
+    const refKey = (ymKey(y,m) === ymKey(today.getFullYear(), today.getMonth()+1))
+      ? todayKey
+      : dkey(y, m, dim(y,m));
+
+    let offCnt=0, absCnt=0, presentCnt=0;
+    emps.forEach(emp=>{
+      const seid=String(+emp.id);
+      const hasOff = offs[seid]&&offs[seid][refKey];
+      const hasAbs = abss[seid]&&abss[seid][refKey];
+      if(hasOff)       offCnt++;
+      else if(hasAbs)  absCnt++;
+      else             presentCnt++;
+    });
+    offAll     += offCnt;
+    absAll     += absCnt;
+    presentAll += presentCnt;
+
+    const isActive = s.id===S.site;
+    return `<div class="summ-item${isActive?' active-site':''}">
+      <span class="summ-site${isActive?' active-site-tx':''}">${escHtml(s.dispLabel)}</span>
+      <div class="summ-badges">
+        <span class="summ-bdg summ-total"><span class="summ-lbl">총</span>${total}명</span>
+        <span class="summ-bdg summ-present"><span class="summ-lbl">근무</span>${presentCnt}명</span>
+        ${offCnt>0?`<span class="summ-bdg summ-off"><span class="summ-lbl">휴무</span>${offCnt}명</span>`:''}
+        ${absCnt>0?`<span class="summ-bdg summ-abs"><span class="summ-lbl">미근무</span>${absCnt}명</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // 전체 합계
+  const totalChip = `<div class="summ-total-all">
+    <span style="font-size:11px;color:var(--tx4)">전체 합계</span>
+    <span class="summ-all-chip">총 ${totalAll}명 &nbsp;|&nbsp; 근무 ${presentAll}명 &nbsp;|&nbsp; 휴무 ${offAll}명 &nbsp;|&nbsp; 미근무 ${absAll}명</span>
+  </div>`;
+
+  const bar = document.getElementById('summaryBar');
+  if(bar) bar.innerHTML = items + totalChip;
 }
 
 // ── 테이블 렌더 ──
@@ -1093,6 +1202,7 @@ function renderTable(){
     </div>
   `;
   setupDragEvents();
+  buildSummaryBar();  // 근무 현황 갱신
 }
 
 // ── 우클릭(contextmenu)으로 현장미근무 팝업 열기 ──
