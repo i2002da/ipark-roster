@@ -877,7 +877,21 @@ function applyRemote(d){
   if(d.empSnaps)  S.empSnaps  = normalizeEmpSnaps(d.empSnaps);
   if(d.offDays)   S.offDays   = d.offDays;
   if(d.absDays)   S.absDays   = d.absDays;
-  if(d.notes)     S.notes     = d.notes;
+  if(d.notes){
+    // 구버전 호환: notes[site][empId]='문자열' → notes[site][empId]={} 마이그레이션
+    const nn=d.notes;
+    Object.keys(nn).forEach(sid=>{
+      const siteNotes=nn[sid]||{};
+      Object.keys(siteNotes).forEach(eid=>{
+        if(typeof siteNotes[eid]==='string' && siteNotes[eid]){
+          siteNotes[eid]={'000000':siteNotes[eid]};
+        } else if(typeof siteNotes[eid]==='string'){
+          siteNotes[eid]={};
+        }
+      });
+    });
+    S.notes=nn;
+  }
   if(d.holidays)  S.holidays  = d.holidays;
   if(d.notices){
     // 구버전 호환: notices[site]='문자열' → notices[site]={} 로 마이그레이션
@@ -901,7 +915,7 @@ function applyRemote(d){
     if(!S.empSnaps[s.id])  S.empSnaps[s.id]={};
     if(!S.offDays[s.id])   S.offDays[s.id]={};
     if(!S.absDays[s.id])   S.absDays[s.id]={};
-    if(!S.notes[s.id])     S.notes[s.id]={};
+    if(!S.notes[s.id]||typeof S.notes[s.id]==='string') S.notes[s.id]={};
     if(!S.notices[s.id]||typeof S.notices[s.id]==='string') S.notices[s.id]={};
     if(!S.nextId[s.id]||isNaN(+S.nextId[s.id])){
       const cur=S.employees[s.id]||[];
@@ -1029,7 +1043,7 @@ async function loadState(){
 
 // ── 테마 ──
 // ── 버전 정보 (여기만 수정하면 화면에 즉시 반영) ──
-const APP_VERSION = 'v4.2';
+const APP_VERSION = 'v4.3';
 const APP_DATE    = '2026-05-03';
 
 function applyVersion(){
@@ -1140,6 +1154,7 @@ function renderTable(){
   const emps=getEmpsForMonth(S.site,y,m);
   const offs=S.offDays[S.site]||{};
   const nts=S.notes[S.site]||{};
+  const _noteYm=ymKey(y,m);  // 비고 월별 접근용
   const absMap=S.absDays[S.site]||{};
 
   const DI=[];
@@ -1242,7 +1257,10 @@ function renderTable(){
             // 휴무계: 현재 달 날짜만 카운트 (다른 달 데이터 혼입 방지)
             const monthPrefix=dkey(y,m,1).slice(0,7);  // 'YYYY-MM'
             const cnt=Object.keys(eo).filter(k=>k.startsWith(monthPrefix)).length;
-            const nv=nts[eid]||'';
+            const _nraw=nts[seid]||(nts[eid]?nts[eid]:null);
+            const nv=_nraw
+              ?(typeof _nraw==='object'?_nraw[_noteYm]||'':_nraw)
+              :'';
             return `<tr draggable="true" data-idx="${i}" data-eid="${eid}">
               <td style="position:sticky;left:0;z-index:2;min-width:26px;width:26px;background:var(--bg-cell);padding:0;cursor:grab" class="c-ord" title="드래그 순서변경"><div class="ord-btn"><span>▲</span><span style="font-size:8px;color:var(--tx4)">⠿</span><span>▼</span></div></td>
               <td style="position:sticky;left:26px;z-index:2;min-width:32px;width:32px;background:var(--bg-cell);text-align:center;color:var(--tx4);font-size:11px" class="c-no">${i+1}</td>
@@ -1558,7 +1576,13 @@ function openNotePopup(e,sid,eid){
   const emps=getEmpsForMonth(sid,S.year,S.month);
   const emp=emps.find(x=>+x.id===eid);
   document.getElementById('notePopupTitle').textContent='비고 — '+(emp?emp.name:'');
-  document.getElementById('notePopupTa').value=(S.notes[sid]&&S.notes[sid][eid])||'';
+  const _seid=String(eid);
+  const _ym=ymKey(S.year,S.month);
+  const _noteData=S.notes[sid]&&S.notes[sid][_seid];
+  const _noteVal=_noteData
+    ?(typeof _noteData==='object'?_noteData[_ym]||'':_noteData)
+    :'';
+  document.getElementById('notePopupTa').value=_noteVal;
   const rect=e.target.getBoundingClientRect();
   let left=rect.left,top=rect.bottom+4;
   if(left+270>window.innerWidth)left=window.innerWidth-274;
@@ -1571,7 +1595,12 @@ function closeNotePopup(){document.getElementById('notePopup').classList.remove(
 function saveNote(){
   const {sid,eid}=noteTarget;if(!sid||eid===null)return;
   if(!S.notes[sid])S.notes[sid]={};
-  S.notes[sid][eid]=document.getElementById('notePopupTa').value.trim();
+  const seid=String(eid);
+  if(!S.notes[sid][seid])S.notes[sid][seid]={};
+  const ym=ymKey(S.year,S.month);
+  const val=document.getElementById('notePopupTa').value.trim();
+  if(val) S.notes[sid][seid][ym]=val;
+  else    delete S.notes[sid][seid][ym];
   saveState();closeNotePopup();renderTable();
 }
 
@@ -1932,7 +1961,10 @@ async function exportPDF(){
       const eo=offs[seid]||{};
       const ea=absData[seid]||{};
       const cnt=Object.keys(eo).filter(k=>k.startsWith(monthPfx)).length;
-      const noteVal=nts[seid]||nts[eid]||'';
+      const _pnraw=nts[seid]||nts[String(eid)]||nts[eid];
+      const noteVal=_pnraw
+        ?(typeof _pnraw==='object'?_pnraw[pdfMonthPrefix.replace('-','')]||'':_pnraw)
+        :'';
       const rowY=curY+i*ROW_H;
       fr(0,rowY,TABLE_W,ROW_H,C.bg);
       let cx2=0;
@@ -2066,7 +2098,10 @@ async function exportExcel(){
         else cells.push('');
       });
       cells.push(cnt);
-      cells.push(nts[seid]||nts[+emp.id]||'');
+      const _xnraw=nts[seid]||nts[String(+emp.id)];
+      const _xym=ymKey(y,m);
+      const xNoteVal=_xnraw?(typeof _xnraw==='object'?_xnraw[_xym]||'':_xnraw):'';
+      cells.push(xNoteVal);
       return cells;
     });
 
