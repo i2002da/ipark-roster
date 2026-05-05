@@ -291,6 +291,9 @@ td.c-name{background:var(--bg-cell);box-shadow:3px 0 5px rgba(10,35,66,.12)}
 [data-theme="dark"] .th-sun{background:#2a0a0a!important;color:#f87171!important}
 [data-theme="dark"] .th-ch{background:#0a1e0a!important;color:#4ade80!important}
 .dc{width:28px;height:30px;cursor:pointer;position:relative;transition:filter .1s}
+.dc.s-pre{background:repeating-linear-gradient(45deg,#e8ecf0,#e8ecf0 2px,#f5f7fa 2px,#f5f7fa 6px)!important;cursor:not-allowed;opacity:.5}
+[data-theme="dark"] .dc.s-pre{background:repeating-linear-gradient(45deg,#1a2236,#1a2236 2px,#0d1b2a 2px,#0d1b2a 6px)!important;opacity:.4}
+.dc.s-pre::after{display:none!important}
 .dc.s-sat{background:var(--sat-bg)}.dc.s-sun{background:var(--sun-bg)}.dc.s-ch{background:var(--ch-bg)}
 /* 평일 휴무: 녹색 배경 */
 .dc.s-off{background:#c8e8d0}
@@ -528,6 +531,7 @@ thead th.c-tot-h,thead th.c-note-h{position:sticky;z-index:3;background:#0a2342;
     <div class="m-form">
       <div class="f-row"><label class="f-lbl">구분 / 직책</label><input class="f-inp" id="nDept" placeholder="예: 소장, 건축, 안전 ..."></div>
       <div class="f-row"><label class="f-lbl">성명</label><input class="f-inp" id="nName" placeholder="홍길동"></div>
+      <div class="f-row"><label class="f-lbl">현장 발령일 <span style="color:var(--tx4);font-weight:400">(이전 날짜는 근무·휴무에서 제외)</span></label><input type="date" class="f-inp" id="nJoinDate"></div>
     </div>
     <div class="m-acts">
       <button class="btn btn-out" id="btnAddEmpCancel">취소</button>
@@ -543,6 +547,7 @@ thead th.c-tot-h,thead th.c-note-h{position:sticky;z-index:3;background:#0a2342;
     <div class="m-form">
       <div class="f-row"><label class="f-lbl">구분 / 직책</label><input class="f-inp" id="eDept"></div>
       <div class="f-row"><label class="f-lbl">성명</label><input class="f-inp" id="eName"></div>
+      <div class="f-row"><label class="f-lbl">현장 발령일 <span style="color:var(--tx4);font-weight:400">(이전 날짜 제외)</span></label><input type="date" class="f-inp" id="eJoinDate"></div>
     </div>
     <div class="m-acts">
       <button class="btn btn-del" id="btnDelEmp">삭제</button>
@@ -1043,8 +1048,8 @@ async function loadState(){
 
 // ── 테마 ──
 // ── 버전 정보 (여기만 수정하면 화면에 즉시 반영) ──
-const APP_VERSION = 'v4.3';
-const APP_DATE    = '2026-05-03';
+const APP_VERSION = 'v4.4';
+const APP_DATE    = '2026-05-05';
 
 function applyVersion(){
   const vn=document.getElementById('verNum');
@@ -1113,6 +1118,7 @@ function updateHdrStats(){
     const abss = S.absDays[s.id]||{};
     totalAll += emps.length;
     emps.forEach(emp=>{
+      if(emp.joinDate && refDateKey<emp.joinDate) return;  // 발령 전 제외
       const seid = String(+emp.id);
       const isOff = (offs[seid]&&offs[seid][refDateKey]) || (abss[seid]&&abss[seid][refDateKey]);
       if(isOff) offAll++; else workAll++;
@@ -1163,12 +1169,14 @@ function renderTable(){
   // 근무인원수: 휴무(●) 또는 현장미근무 모두 제외
   // Firebase 복원 시 숫자키→문자열키 변환되므로 String(eid) 로 통일
   const wCnt=DI.map(x=>emps.filter(e=>{
-    const eid=String(+e.id);   // String 키로만 접근
+    const eid=String(+e.id);
+    if(e.joinDate && x.k<e.joinDate) return false;  // 발령 전 제외
     return !(offs[eid]&&offs[eid][x.k]) && !(abs[eid]&&abs[eid][x.k]);
   }).length);
 
   const thC=t=>t==='sat'?'th-sat':(t==='sun'||t==='holiday')?'th-sun':t==='custom'?'th-ch':'';
-  const dcC=(t,off,absType)=>{
+  const dcC=(t,off,absType,isPre)=>{
+    if(isPre) return 'dc s-pre';  // 발령 전: 빗금 비활성
     let c='dc';
     if(t==='sat')c+=' s-sat';else if(t==='sun'||t==='holiday')c+=' s-sun';else if(t==='custom')c+=' s-ch';
     if(off)c+=' s-off';
@@ -1267,14 +1275,16 @@ function renderTable(){
               <td style="position:sticky;left:58px;z-index:2;min-width:50px;width:50px;background:var(--bg-cell);text-align:center;font-size:11px" class="c-dept"><span class="dbdg">${emp.dept||''}</span></td>
               <td style="position:sticky;left:108px;z-index:2;min-width:74px;width:74px;background:var(--bg-cell);text-align:center;font-weight:500;color:var(--tx2);box-shadow:3px 0 5px rgba(10,35,66,.10);cursor:pointer" class="c-name" data-action="${!isPast?'openEditEmp':''}" data-sid="${S.site}" data-eid="${eid}" title="${!isPast?'클릭 → 수정':''}">${emp.name}</td>
               ${DI.map(x=>{
-                const hasOff=!!(eo[x.k]);   // eo 자체가 이미 fallback 처리됨
-                const absType=ea[x.k]||'';
+                const isPre=!!(emp.joinDate && x.k<emp.joinDate);  // 발령 전
+                const hasOff=!isPre && !!(eo[x.k]);
+                const absType=!isPre && (ea[x.k]||'');
                 // 우클릭(contextmenu) 대신 data-action으로 처리:
                 // 좌클릭 → toggleOff (휴무), 우클릭 대체: data-action="openAbs"
-                return `<td class="${dcC(x.t,hasOff,absType)}"
-                  data-action="toggleOff"
-                  data-action2="openAbs"
-                  data-sid="${S.site}" data-eid="${eid}" data-key="${x.k}">${absType?`<span class="abs-lbl">${absType}</span>`:''}</td>`;
+                return `<td class="${dcC(x.t,hasOff,absType,isPre)}"
+                  ${isPre?'':'data-action="toggleOff" data-action2="openAbs"'}
+                  data-sid="${S.site}" data-eid="${eid}" data-key="${x.k}"
+                  ${isPre?`title="발령일(${emp.joinDate}) 이전"`:''}>
+                  ${absType?`<span class="abs-lbl">${absType}</span>`:''}</td>`;
               }).join('')}
               <td class="c-tot">${cnt}</td>
               <td class="c-note ${nv?'':'c-note-empty'}" data-action="openNote" data-sid="${S.site}" data-eid="${eid}">${nv?escHtml(nv):'NOTE'}</td>
@@ -1469,7 +1479,12 @@ function toggleOff(sid,eid,k){
   saveState(); renderTable();
 }
 
-function openAddEmpM(){document.getElementById('nDept').value='';document.getElementById('nName').value='';document.getElementById('addEmpM').classList.add('open');}
+function openAddEmpM(){
+  document.getElementById('nDept').value='';
+  document.getElementById('nName').value='';
+  document.getElementById('nJoinDate').value='';
+  document.getElementById('addEmpM').classList.add('open');
+}
 function addEmp(){
   const dept=document.getElementById('nDept').value.trim();
   const name=document.getElementById('nName').value.trim();
@@ -1482,7 +1497,8 @@ function addEmp(){
   // 변경 전 직원 목록 저장 (이전 달 소급 스냅샷용)
   const prevEmps=JSON.parse(JSON.stringify(S.employees[S.site]));
   const id=+S.nextId[S.site]; S.nextId[S.site]=id+1;
-  S.employees[S.site].push({id,dept,name});
+  const joinDate=document.getElementById('nJoinDate').value||'';
+  S.employees[S.site].push({id,dept,name,joinDate});
   propagateForward(S.site, prevEmps);
   saveState();closeModal('addEmpM');buildTabs();renderTable();
 }
@@ -1492,6 +1508,7 @@ function openEditEmpM(sid,eid){
   S.editSite=sid;S.editId=eid;
   document.getElementById('eDept').value=emp.dept||'';
   document.getElementById('eName').value=emp.name||'';
+  document.getElementById('eJoinDate').value=emp.joinDate||'';
   document.getElementById('editEmpM').classList.add('open');
 }
 function saveEmp(){
@@ -1500,6 +1517,7 @@ function saveEmp(){
   // 이름/구분 변경은 이전 달 인원수에 영향 없으므로 prevEmps 불필요
   emp.dept=document.getElementById('eDept').value.trim();
   emp.name=document.getElementById('eName').value.trim();
+  emp.joinDate=document.getElementById('eJoinDate').value||'';
   propagateForward(S.editSite, null);
   saveState();closeModal('editEmpM');buildTabs();renderTable();
 }
@@ -1860,6 +1878,7 @@ async function exportPDF(){
     const monthPfx=dkey(y,m,1).slice(0,7);
     const wCnt=DI.map(x=>emps.filter(e=>{
       const eid=String(+e.id);
+      if(e.joinDate && x.k<e.joinDate) return false;  // 발령 전 제외
       return !(offs[eid]&&offs[eid][x.k])&&!(absData0[eid]&&absData0[eid][x.k]);
     }).length);
 
@@ -2093,6 +2112,7 @@ async function exportExcel(){
       const cnt=Object.keys(eo).filter(k=>k.startsWith(monthPfx)).length;
       const cells=[i+1,emp.dept||'',emp.name];
       DI.forEach(di=>{
+        if(emp.joinDate && di.k<emp.joinDate){ cells.push('-'); return; }
         if(eo[di.k]) cells.push('●');
         else if(ea[di.k]) cells.push(ea[di.k]);
         else cells.push('');
@@ -2108,6 +2128,7 @@ async function exportExcel(){
     // 근무인원수 행
     const wCnt=DI.map(x=>emps.filter(e=>{
       const eid=String(+e.id);
+      if(e.joinDate && x.k<e.joinDate) return false;
       return !(offs[eid]&&offs[eid][x.k])&&!(absData[eid]&&absData[eid][x.k]);
     }).length);
     const sumRow=['','','근무인원수',...wCnt,'',''];
