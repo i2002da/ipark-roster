@@ -615,26 +615,26 @@ const WD=['일','월','화','수','목','금','토'];
 
 const INIT_EMP={
   s5:[
-    {id:1,dept:'소장',name:'이상훈'},{id:2,dept:'건축',name:'이동우'},{id:3,dept:'',name:'김승호'},
-    {id:4,dept:'',name:'박한솔'},{id:5,dept:'',name:'정영선'},{id:6,dept:'전기',name:'노진석'},
-    {id:7,dept:'기계',name:'김태진'},{id:8,dept:'토목',name:'김태희'},{id:9,dept:'공무',name:'이재협'},
-    {id:10,dept:'',name:'이도업'},{id:11,dept:'안전',name:'김연수'},{id:12,dept:'',name:'김지훈'},
-    {id:13,dept:'',name:'이유승'},{id:14,dept:'',name:'남윤수'},{id:15,dept:'품질',name:'조금진'},
-    {id:16,dept:'RM',name:'김이준'},{id:17,dept:'',name:'이종관'}
+    {id:1,dept:'소장',name:'이상훈',joinDate:'2026-04-01'},{id:2,dept:'건축',name:'이동우',joinDate:'2026-04-01'},{id:3,dept:'',name:'김승호',joinDate:'2026-04-01'},
+    {id:4,dept:'',name:'박한솔',joinDate:'2026-04-01'},{id:5,dept:'',name:'정영선',joinDate:'2026-04-01'},{id:6,dept:'전기',name:'노진석',joinDate:'2026-04-01'},
+    {id:7,dept:'기계',name:'김태진',joinDate:'2026-04-01'},{id:8,dept:'토목',name:'김태희',joinDate:'2026-04-01'},{id:9,dept:'공무',name:'이재협',joinDate:'2026-04-01'},
+    {id:10,dept:'',name:'이도업',joinDate:'2026-04-01'},{id:11,dept:'안전',name:'김연수',joinDate:'2026-04-01'},{id:12,dept:'',name:'김지훈',joinDate:'2026-04-01'},
+    {id:13,dept:'',name:'이유승',joinDate:'2026-04-01'},{id:14,dept:'',name:'남윤수',joinDate:'2026-04-01'},{id:15,dept:'품질',name:'조금진',joinDate:'2026-04-01'},
+    {id:16,dept:'RM',name:'김이준',joinDate:'2026-04-01'},{id:17,dept:'',name:'이종관',joinDate:'2026-04-01'}
   ],
   s6:[
-    {id:1,dept:'소장',name:'이상훈'},{id:2,dept:'건축',name:'이동우'},{id:3,dept:'',name:'김승호'},
-    {id:4,dept:'',name:'박한솔'},{id:5,dept:'',name:'정영선'},{id:6,dept:'전기',name:'노진석'},
-    {id:7,dept:'기계',name:'김태진'},{id:8,dept:'토목',name:'김태희'},{id:9,dept:'공무',name:'이재협'},
-    {id:10,dept:'',name:'이도업'},{id:11,dept:'안전',name:'김연수'},{id:12,dept:'',name:'김지훈'},
-    {id:13,dept:'',name:'이유승'},{id:14,dept:'',name:'남윤수'},{id:15,dept:'RM',name:'김이준'},
-    {id:16,dept:'',name:'이종관'}
+    {id:1,dept:'소장',name:'이상훈',joinDate:'2026-04-01'},{id:2,dept:'건축',name:'이동우',joinDate:'2026-04-01'},{id:3,dept:'',name:'김승호',joinDate:'2026-04-01'},
+    {id:4,dept:'',name:'박한솔',joinDate:'2026-04-01'},{id:5,dept:'',name:'정영선',joinDate:'2026-04-01'},{id:6,dept:'전기',name:'노진석',joinDate:'2026-04-01'},
+    {id:7,dept:'기계',name:'김태진',joinDate:'2026-04-01'},{id:8,dept:'토목',name:'김태희',joinDate:'2026-04-01'},{id:9,dept:'공무',name:'이재협',joinDate:'2026-04-01'},
+    {id:10,dept:'',name:'이도업',joinDate:'2026-04-01'},{id:11,dept:'안전',name:'김연수',joinDate:'2026-04-01'},{id:12,dept:'',name:'김지훈',joinDate:'2026-04-01'},
+    {id:13,dept:'',name:'이유승',joinDate:'2026-04-01'},{id:14,dept:'',name:'남윤수',joinDate:'2026-04-01'},{id:15,dept:'RM',name:'김이준',joinDate:'2026-04-01'},
+    {id:16,dept:'',name:'이종관',joinDate:'2026-04-01'}
   ],
   sg:[
-    {id:1,dept:'소장',name:'이상훈'},{id:2,dept:'토목',name:'이동우'},{id:3,dept:'',name:'김승호'},
-    {id:4,dept:'',name:'박한솔'},{id:5,dept:'',name:'정영선'},{id:6,dept:'안전',name:'김연수'},
-    {id:7,dept:'',name:'김지훈'},{id:8,dept:'',name:'이유승'},{id:9,dept:'',name:'남윤수'},
-    {id:10,dept:'품질',name:'김이준'},{id:11,dept:'',name:'이종관'}
+    {id:1,dept:'소장',name:'이상훈',joinDate:'2026-04-01'},{id:2,dept:'토목',name:'이동우',joinDate:'2026-04-01'},{id:3,dept:'',name:'김승호',joinDate:'2026-04-01'},
+    {id:4,dept:'',name:'박한솔',joinDate:'2026-04-01'},{id:5,dept:'',name:'정영선',joinDate:'2026-04-01'},{id:6,dept:'안전',name:'김연수',joinDate:'2026-04-01'},
+    {id:7,dept:'',name:'김지훈',joinDate:'2026-04-01'},{id:8,dept:'',name:'이유승',joinDate:'2026-04-01'},{id:9,dept:'',name:'남윤수',joinDate:'2026-04-01'},
+    {id:10,dept:'품질',name:'김이준',joinDate:'2026-04-01'},{id:11,dept:'',name:'이종관',joinDate:'2026-04-01'}
   ]
 };
 const DEF_HOL={
@@ -856,7 +856,10 @@ function normalizeEmployees(obj){
   if(!obj) return {};
   const out={};
   Object.keys(obj).forEach(sid=>{
-    out[sid]=toArray(obj[sid]);
+    const arr=toArray(obj[sid]);
+    // joinDate 없는 직원에 기본값 부여
+    arr.forEach(emp=>{ if(!emp.joinDate) emp.joinDate='2026-04-01'; });
+    out[sid]=arr;
   });
   return out;
 }
@@ -1048,7 +1051,7 @@ async function loadState(){
 
 // ── 테마 ──
 // ── 버전 정보 (여기만 수정하면 화면에 즉시 반영) ──
-const APP_VERSION = 'v4.4';
+const APP_VERSION = 'v4.5';
 const APP_DATE    = '2026-05-05';
 
 function applyVersion(){
@@ -1116,9 +1119,11 @@ function updateHdrStats(){
     const emps = getEmpsForMonth(s.id, ry, rm);
     const offs = S.offDays[s.id]||{};
     const abss = S.absDays[s.id]||{};
-    totalAll += emps.length;
     emps.forEach(emp=>{
-      if(emp.joinDate && refDateKey<emp.joinDate) return;  // 발령 전 제외
+      // 발령일 이후에만 근무·휴무·총원 모두 포함
+      const jd = emp.joinDate || '2026-04-01';
+      if(refDateKey < jd) return;  // 발령 전 → 총원·근무·휴무 모두 제외
+      totalAll++;
       const seid = String(+emp.id);
       const isOff = (offs[seid]&&offs[seid][refDateKey]) || (abss[seid]&&abss[seid][refDateKey]);
       if(isOff) offAll++; else workAll++;
@@ -1170,7 +1175,8 @@ function renderTable(){
   // Firebase 복원 시 숫자키→문자열키 변환되므로 String(eid) 로 통일
   const wCnt=DI.map(x=>emps.filter(e=>{
     const eid=String(+e.id);
-    if(e.joinDate && x.k<e.joinDate) return false;  // 발령 전 제외
+    const jd=e.joinDate||'2026-04-01';
+    if(x.k<jd) return false;  // 발령 전 제외
     return !(offs[eid]&&offs[eid][x.k]) && !(abs[eid]&&abs[eid][x.k]);
   }).length);
 
@@ -1275,7 +1281,7 @@ function renderTable(){
               <td style="position:sticky;left:58px;z-index:2;min-width:50px;width:50px;background:var(--bg-cell);text-align:center;font-size:11px" class="c-dept"><span class="dbdg">${emp.dept||''}</span></td>
               <td style="position:sticky;left:108px;z-index:2;min-width:74px;width:74px;background:var(--bg-cell);text-align:center;font-weight:500;color:var(--tx2);box-shadow:3px 0 5px rgba(10,35,66,.10);cursor:pointer" class="c-name" data-action="${!isPast?'openEditEmp':''}" data-sid="${S.site}" data-eid="${eid}" title="${!isPast?'클릭 → 수정':''}">${emp.name}</td>
               ${DI.map(x=>{
-                const isPre=!!(emp.joinDate && x.k<emp.joinDate);  // 발령 전
+                const isPre=x.k<(emp.joinDate||'2026-04-01');  // 발령 전
                 const hasOff=!isPre && !!(eo[x.k]);
                 const absType=!isPre && (ea[x.k]||'');
                 // 우클릭(contextmenu) 대신 data-action으로 처리:
@@ -1497,7 +1503,7 @@ function addEmp(){
   // 변경 전 직원 목록 저장 (이전 달 소급 스냅샷용)
   const prevEmps=JSON.parse(JSON.stringify(S.employees[S.site]));
   const id=+S.nextId[S.site]; S.nextId[S.site]=id+1;
-  const joinDate=document.getElementById('nJoinDate').value||'';
+  const joinDate=document.getElementById('nJoinDate').value||'2026-04-01';  // 미입력 시 기본값
   S.employees[S.site].push({id,dept,name,joinDate});
   propagateForward(S.site, prevEmps);
   saveState();closeModal('addEmpM');buildTabs();renderTable();
@@ -1517,7 +1523,7 @@ function saveEmp(){
   // 이름/구분 변경은 이전 달 인원수에 영향 없으므로 prevEmps 불필요
   emp.dept=document.getElementById('eDept').value.trim();
   emp.name=document.getElementById('eName').value.trim();
-  emp.joinDate=document.getElementById('eJoinDate').value||'';
+  emp.joinDate=document.getElementById('eJoinDate').value||'2026-04-01';  // 미입력 시 기본값
   propagateForward(S.editSite, null);
   saveState();closeModal('editEmpM');buildTabs();renderTable();
 }
@@ -1878,7 +1884,7 @@ async function exportPDF(){
     const monthPfx=dkey(y,m,1).slice(0,7);
     const wCnt=DI.map(x=>emps.filter(e=>{
       const eid=String(+e.id);
-      if(e.joinDate && x.k<e.joinDate) return false;  // 발령 전 제외
+      if(x.k<(e.joinDate||'2026-04-01')) return false;  // 발령 전 제외
       return !(offs[eid]&&offs[eid][x.k])&&!(absData0[eid]&&absData0[eid][x.k]);
     }).length);
 
@@ -2003,11 +2009,15 @@ async function exportPDF(){
       cx2+=COL_NAME;
       // 날짜 셀
       DI.forEach(di=>{
-        const hasOff=!!(eo[di.k]);
-        const absType=ea[di.k]||'';
+        const isPre=di.k<(emp.joinDate||'2026-04-01');  // 발령 전
+        const hasOff=!isPre && !!(eo[di.k]);
+        const absType=!isPre && (ea[di.k]||'');
         const dc=dayC(di.t);
         let cBg=dc.bg;
-        if(hasOff){
+        if(isPre){
+          fr(cx2,rowY,COL_DAY,ROW_H,isDark?'#101e30':'#eeeeee');
+          vl(cx2+COL_DAY,rowY,rowY+ROW_H,C.bdS); cx2+=COL_DAY; return;
+        } else if(hasOff){
           // 날짜 타입 배경 유지 + ● 표시
           fr(cx2,rowY,COL_DAY,ROW_H,cBg);
           const dotCol=di.t==='sat'?C.satTx:di.t==='sun'||di.t==='holiday'?C.sunTx:di.t==='custom'?C.chTx:C.offDot;
@@ -2112,7 +2122,7 @@ async function exportExcel(){
       const cnt=Object.keys(eo).filter(k=>k.startsWith(monthPfx)).length;
       const cells=[i+1,emp.dept||'',emp.name];
       DI.forEach(di=>{
-        if(emp.joinDate && di.k<emp.joinDate){ cells.push('-'); return; }
+        if(di.k<(emp.joinDate||'2026-04-01')){ cells.push('-'); return; }
         if(eo[di.k]) cells.push('●');
         else if(ea[di.k]) cells.push(ea[di.k]);
         else cells.push('');
@@ -2128,7 +2138,7 @@ async function exportExcel(){
     // 근무인원수 행
     const wCnt=DI.map(x=>emps.filter(e=>{
       const eid=String(+e.id);
-      if(e.joinDate && x.k<e.joinDate) return false;
+      if(x.k<(e.joinDate||'2026-04-01')) return false;
       return !(offs[eid]&&offs[eid][x.k])&&!(absData[eid]&&absData[eid][x.k]);
     }).length);
     const sumRow=['','','근무인원수',...wCnt,'',''];
