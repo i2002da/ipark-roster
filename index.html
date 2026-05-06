@@ -1106,7 +1106,7 @@ async function loadState(){
 
 // ── 테마 ──
 // ── 버전 정보 (여기만 수정하면 화면에 즉시 반영) ──
-const APP_VERSION = 'v4.9';
+const APP_VERSION = 'v5.0';
 const APP_DATE    = '2026-05-06';
 
 function applyVersion(){
@@ -1842,22 +1842,44 @@ async function removeSite(sid){
 
 // ── 구글 캘린더 iCal 파싱 ─────────────────────────────────
 const GCAL_URL='https://calendar.google.com/calendar/ical/ko.south_korea%23holiday%40group.v.calendar.google.com/public/basic.ics';
-const PROXY='https://api.allorigins.win/raw?url=';
+
+// CORS 프록시 목록 (순서대로 시도)
+const CORS_PROXIES=[
+  url=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  url=>`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url=>`https://corsproxy.io/?${encodeURIComponent(url)}`,
+];
+
+async function fetchWithProxy(url){
+  for(const makeProxy of CORS_PROXIES){
+    const proxyUrl=makeProxy(url);
+    try{
+      const ctrl=new AbortController();
+      const tid=setTimeout(()=>ctrl.abort(),8000);  // 8초 타임아웃
+      const res=await fetch(proxyUrl,{signal:ctrl.signal});
+      clearTimeout(tid);
+      if(!res.ok) continue;
+      const text=await res.text();
+      // iCal 유효성 확인
+      if(text.includes('BEGIN:VCALENDAR')) return text;
+    }catch(e){
+      console.warn('[iCal] 프록시 실패:', proxyUrl.split('?')[0], e.message);
+    }
+  }
+  throw new Error('모든 프록시 실패');
+}
 
 async function fetchGCalHolidays(){
   const btn=document.getElementById('btnFetchHol');
   if(btn){btn.textContent='📡 불러오는 중...';btn.disabled=true;}
   try{
-    const res=await fetch(PROXY+encodeURIComponent(GCAL_URL));
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const ical=await res.text();
+    const ical=await fetchWithProxy(GCAL_URL);
     const added=parseIcal(ical);
-    saveState();renderHolList();
+    saveState();renderHolList();renderTable();
     if(btn){btn.textContent='✅ '+added+'개 업데이트';btn.disabled=false;}
     setTimeout(()=>{if(btn)btn.textContent='📡 공휴일 자동 업데이트';},2500);
-    renderTable();
   }catch(e){
-    console.error('캘린더 오류:',e);
+    console.error('[iCal] 전체 실패:', e.message);
     if(btn){btn.textContent='⚠ 실패 — 재시도';btn.disabled=false;}
   }
 }
@@ -1885,14 +1907,12 @@ function parseIcal(text){
 // 앱 시작 시 백그라운드 자동 로드 (UI 차단 없음)
 async function autoFetchHolidays(){
   try{
-    const res=await fetch(PROXY+encodeURIComponent(GCAL_URL));
-    if(!res.ok) return;
-    const ical=await res.text();
+    const ical=await fetchWithProxy(GCAL_URL);
     const n=parseIcal(ical);
     if(n>0){ saveState(); renderTable(); }
     console.log('[공휴일] 자동 업데이트 완료 +'+n+'개');
   }catch(e){
-    console.warn('[공휴일] 자동 업데이트 실패:', e.message);
+    console.warn('[공휴일] 자동 업데이트 실패 (DEF_HOL 사용):', e.message);
   }
 }
 
