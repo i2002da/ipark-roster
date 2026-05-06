@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>현장직원 휴무계획표 사용 매뉴얼 v4.8</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Noto Sans KR',sans-serif;background:#f0f4f8;color:#1a3a5c;min-height:100vh}
+
+/* ── 레이아웃 ── */
+.wrap{display:flex;min-height:100vh}
+
+/* ── 사이드바 ── */
+.side{width:230px;flex-shrink:0;background:#0a2342;position:sticky;top:0;height:100vh;overflow-y:auto;padding:20px 0}
+.side::-webkit-scrollbar{width:3px}
+.side::-webkit-scrollbar-thumb{background:#1a3a5c}
+.side-logo{padding:0 16px 18px;border-bottom:1px solid #1a3a5c;margin-bottom:14px}
+.side-title{font-size:13px;font-weight:700;color:#fff;margin-bottom:2px}
+.side-ver{font-size:10px;color:rgba(255,255,255,.45)}
+.side-sec{padding:0 10px;margin-bottom:4px}
+.side-lbl{font-size:9px;font-weight:700;color:rgba(255,255,255,.35);letter-spacing:1.5px;padding:0 6px;margin:10px 0 5px}
+.side-a{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:6px;font-size:11px;color:rgba(255,255,255,.65);text-decoration:none;transition:all .15s}
+.side-a:hover{background:rgba(255,255,255,.1);color:#fff}
+.side-a.on{background:#1a6fc4;color:#fff;font-weight:600}
+.side-num{font-size:9px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.6);padding:1px 5px;border-radius:3px;min-width:18px;text-align:center;flex-shrink:0}
+.side-a.on .side-num{background:rgba(255,255,255,.25);color:#fff}
+
+/* ── 본문 ── */
+.main{flex:1;padding:40px 44px 80px;max-width:860px;overflow-x:hidden}
+
+/* ── 표지 ── */
+.cover{background:linear-gradient(135deg,#0a2342 0%,#1a3a5c 100%);border-radius:14px;padding:40px;margin-bottom:48px;position:relative;overflow:hidden;color:#fff}
+.cover::after{content:'';position:absolute;top:-40px;right:-40px;width:220px;height:220px;background:radial-gradient(circle,rgba(100,180,255,.15),transparent 70%);pointer-events:none}
+.cover-tag{display:inline-block;background:rgba(100,180,255,.18);border:1px solid rgba(100,180,255,.35);color:#7ac8f0;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.5px;margin-bottom:14px}
+.cover-title{font-size:28px;font-weight:900;letter-spacing:-1px;margin-bottom:8px;line-height:1.2}
+.cover-title span{color:#60a5fa}
+.cover-desc{font-size:13px;color:rgba(255,255,255,.7);line-height:1.8;margin-bottom:20px}
+.cover-url{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:7px;padding:8px 14px;font-size:12px;color:#93c5fd;text-decoration:none}
+
+/* ── 섹션 ── */
+.sec{margin-bottom:48px;scroll-margin-top:20px}
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:10px;border-bottom:2px solid #c2d4e8}
+.sec-num{width:30px;height:30px;border-radius:8px;background:#0a2342;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sec-title{font-size:18px;font-weight:700;color:#0a2342}
+
+/* ── 카드 ── */
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.card{background:#fff;border:1px solid #c2d4e8;border-radius:9px;padding:14px}
+.card-icon{font-size:20px;margin-bottom:6px}
+.card-title{font-size:12px;font-weight:700;color:#0a2342;margin-bottom:4px}
+.card-body{font-size:11px;color:#3d6b9a;line-height:1.75}
+
+/* ── 스텝 ── */
+.steps{display:flex;flex-direction:column;gap:8px}
+.step{display:flex;gap:12px;background:#fff;border:1px solid #dde8f2;border-radius:8px;padding:12px 14px}
+.step-dot{width:22px;height:22px;border-radius:6px;background:#ddeeff;color:#0d5aa7;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.step-body{flex:1}
+.step-title{font-size:12px;font-weight:700;color:#0a2342;margin-bottom:3px}
+.step-desc{font-size:11px;color:#3d6b9a;line-height:1.75}
+.step-desc b{color:#0a2342}
+
+/* ── 테이블 ── */
+.tbl{width:100%;border-collapse:collapse;font-size:11px;margin:10px 0}
+.tbl th{background:#0a2342;color:#b8d4f0;font-weight:600;padding:7px 10px;text-align:left}
+.tbl td{padding:8px 10px;border-bottom:1px solid #dde8f2;color:#3d6b9a;vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:#f0f7ff}
+
+/* ── 배지 ── */
+.bdg{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;white-space:nowrap}
+.b-blue{background:#ddeeff;color:#0d5aa7}
+.b-grn{background:#d4edda;color:#1a5c30}
+.b-red{background:#ffd5d5;color:#8b1a1a}
+.b-ppl{background:#e8d8ff;color:#6b21a8}
+.b-org{background:#fff0d4;color:#92400e}
+.b-gray{background:#e8ecf0;color:#475569}
+
+/* ── 셀 색상 시각화 ── */
+.cell-row{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
+.cell-chip{display:flex;align-items:center;gap:6px;padding:5px 10px;background:#fff;border:1px solid #c2d4e8;border-radius:6px;font-size:11px;color:#3d6b9a}
+.chip-box{width:18px;height:16px;border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700}
+
+/* ── 팁 ── */
+.tip{display:flex;gap:8px;padding:10px 13px;border-radius:7px;font-size:11px;line-height:1.75;margin:10px 0}
+.tip-info{background:#ddeeff;border:1px solid #7ab8e8;color:#0a2342}
+.tip-warn{background:#fff8e6;border:1px solid #e8c840;color:#7a5800}
+.tip-ok{background:#d4edda;border:1px solid #86c99a;color:#1a5c30}
+.tip-icon{flex-shrink:0}
+hr.sec{border:none;border-top:1px solid #dde8f2;margin:18px 0}
+
+@media(max-width:820px){
+  .side{display:none}
+  .main{padding:20px 16px 60px}
+  .cards{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- 사이드바 -->
+<nav class="side">
+  <div class="side-logo">
+    <div class="side-title">현장직원 휴무계획표</div>
+    <div class="side-ver">사용 매뉴얼 v4.8 · 2026.05.06</div>
+  </div>
+  <div class="side-sec">
+    <div class="side-lbl">시작하기</div>
+    <a class="side-a on" href="#intro"><span class="side-num">01</span>시스템 개요</a>
+    <a class="side-a" href="#screen"><span class="side-num">02</span>화면 구성</a>
+  </div>
+  <div class="side-sec">
+    <div class="side-lbl">현장 관리</div>
+    <a class="side-a" href="#site"><span class="side-num">03</span>현장 추가·수정·삭제</a>
+    <a class="side-a" href="#site-order"><span class="side-num">04</span>현장 탭 순서 변경</a>
+  </div>
+  <div class="side-sec">
+    <div class="side-lbl">직원 관리</div>
+    <a class="side-a" href="#emp-add"><span class="side-num">05</span>직원 추가</a>
+    <a class="side-a" href="#emp-edit"><span class="side-num">06</span>직원 수정·삭제</a>
+    <a class="side-a" href="#emp-join"><span class="side-num">07</span>현장 발령일</a>
+    <a class="side-a" href="#emp-order"><span class="side-num">08</span>직원 순서 변경</a>
+  </div>
+  <div class="side-sec">
+    <div class="side-lbl">근무 입력</div>
+    <a class="side-a" href="#off"><span class="side-num">09</span>휴무 등록·해제</a>
+    <a class="side-a" href="#absent"><span class="side-num">10</span>현장미근무 등록</a>
+    <a class="side-a" href="#bulk"><span class="side-num">11</span>일괄 휴무</a>
+    <a class="side-a" href="#note"><span class="side-num">12</span>비고(NOTE)</a>
+  </div>
+  <div class="side-sec">
+    <div class="side-lbl">설정·출력</div>
+    <a class="side-a" href="#holiday"><span class="side-num">13</span>공휴일 관리</a>
+    <a class="side-a" href="#notice"><span class="side-num">14</span>공지사항</a>
+    <a class="side-a" href="#header"><span class="side-num">15</span>상단 인원 통계</a>
+    <a class="side-a" href="#pdf"><span class="side-num">16</span>PDF·엑셀 저장</a>
+    <a class="side-a" href="#sync"><span class="side-num">17</span>실시간 공유</a>
+    <a class="side-a" href="#faq"><span class="side-num">18</span>자주 묻는 질문</a>
+  </div>
+</nav>
+
+<!-- 본문 -->
+<main class="main">
+
+<!-- 표지 -->
+<div class="cover">
+  <div class="cover-tag">📋 Quick Manual</div>
+  <div class="cover-title">현장직원 <span>휴무계획표</span></div>
+  <div class="cover-desc">천안 IPC 통합현장 직원의 월간 휴무·근무 현황을 실시간으로 공유하고 PDF·엑셀로 출력하는 웹 기반 시스템입니다.</div>
+  <a class="cover-url" href="https://i2002da.github.io/ipark-roster/" target="_blank">
+    🌐 https://i2002da.github.io/ipark-roster/
+  </a>
+</div>
+
+<!-- 01 시스템 개요 -->
+<section class="sec" id="intro">
+  <div class="sec-hdr"><div class="sec-num">01</div><div class="sec-title">시스템 개요</div></div>
+  <div class="cards">
+    <div class="card"><div class="card-icon">🏗</div><div class="card-title">다현장 통합 관리</div><div class="card-body">여러 현장을 탭으로 구분하여 각각 독립적으로 직원·휴무 데이터를 관리합니다.</div></div>
+    <div class="card"><div class="card-icon">🔄</div><div class="card-title">실시간 공유</div><div class="card-body">Firebase 기반으로 모든 접속자가 동일한 데이터를 실시간으로 확인·수정할 수 있습니다.</div></div>
+    <div class="card"><div class="card-icon">📄</div><div class="card-title">PDF·엑셀 출력</div><div class="card-body">A3 가로 PDF와 XLSX 파일로 저장합니다. 공지사항·비고·발령일 이전 셀도 반영됩니다.</div></div>
+    <div class="card"><div class="card-icon">📅</div><div class="card-title">공휴일 자동 갱신</div><div class="card-body">앱 시작 시 구글 캘린더 대한민국 공휴일을 자동으로 불러옵니다. 2025~2028년 기본 탑재.</div></div>
+  </div>
+  <div class="tip tip-ok"><span class="tip-icon">💾</span><span>데이터는 <b>Firebase Realtime Database</b>에 실시간 저장됩니다. 브라우저를 닫아도 유지되며 다른 기기에서도 동일하게 확인됩니다.</span></div>
+  <div class="tip tip-warn"><span class="tip-icon">⚠️</span><span>중요한 월 마감 후에는 반드시 <b>PDF 또는 엑셀로 저장</b>해 두세요.</span></div>
+</section>
+
+<!-- 02 화면 구성 -->
+<section class="sec" id="screen">
+  <div class="sec-hdr"><div class="sec-num">02</div><div class="sec-title">화면 구성</div></div>
+  <table class="tbl">
+    <thead><tr><th>영역</th><th>위치</th><th>주요 기능</th></tr></thead>
+    <tbody>
+      <tr><td><b>헤더</b></td><td>최상단 고정</td><td>로고 · 전체 현장 근무/휴무/총원 통계 · 월 이동(◁▷) · 실시간 동기화 상태 · 현장관리 · 공휴일관리 · 테마 · 버전</td></tr>
+      <tr><td><b>현장 탭</b></td><td>헤더 아래</td><td>탭 클릭으로 현장 전환. 탭 배지 = 해당 달 직원 수</td></tr>
+      <tr><td><b>컨트롤 바</b></td><td>탭 아래</td><td>현장명 · 과거기록 표시 · 일괄 휴무 · 직원 추가 · PDF 저장 · 엑셀 저장</td></tr>
+      <tr><td><b>근무표 테이블</b></td><td>중앙</td><td>직원 × 날짜 셀. 좌클릭=휴무, 우클릭=현장미근무. 헤더와 좌측 4열 고정(스크롤 시 유지)</td></tr>
+      <tr><td><b>근무인원수 행</b></td><td>테이블 하단</td><td>날짜별 실제 현장 근무 인원 자동 집계</td></tr>
+      <tr><td><b>공지사항</b></td><td>테이블 아래</td><td>현장별·월별 공지 입력. PDF에 자동 포함</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 03 현장 관리 -->
+<section class="sec" id="site">
+  <div class="sec-hdr"><div class="sec-num">03</div><div class="sec-title">현장 추가·수정·삭제</div></div>
+  <div class="steps">
+    <div class="step"><div class="step-dot">①</div><div class="step-body"><div class="step-title">헤더 🏗 현장 관리 클릭</div><div class="step-desc">등록된 현장 목록과 추가 폼이 표시됩니다.</div></div></div>
+    <div class="step"><div class="step-dot">②</div><div class="step-body"><div class="step-title">현장 추가 — 현장명·전체명 입력 후 + 현장 추가</div><div class="step-desc"><b>현장명</b>: 탭에 짧게 표시 (예: 3단지) &nbsp;·&nbsp; <b>전체명</b>: 근무표 상단·PDF에 표시</div></div></div>
+    <div class="step"><div class="step-dot">③</div><div class="step-body"><div class="step-title">현장명 수정 — ✎ 수정 버튼 클릭</div><div class="step-desc">인라인 입력 폼이 열립니다. 수정 후 저장하면 탭·근무표·PDF에 즉시 반영됩니다.</div></div></div>
+    <div class="step"><div class="step-dot">④</div><div class="step-body"><div class="step-title">현장 삭제 — 삭제 버튼 클릭 후 확인</div><div class="step-desc">해당 현장의 모든 데이터가 삭제됩니다. <b>최소 1개</b> 현장은 유지됩니다.</div></div></div>
+  </div>
+</section>
+
+<!-- 04 현장 탭 순서 -->
+<section class="sec" id="site-order">
+  <div class="sec-hdr"><div class="sec-num">04</div><div class="sec-title">현장 탭 순서 변경</div></div>
+  <div class="step"><div class="step-dot">⠿</div><div class="step-body"><div class="step-title">현장 관리 모달에서 ⠿ 핸들 드래그</div><div class="step-desc">목록 좌측 ⠿ 핸들을 마우스로 잡고 원하는 위치로 드래그하면 탭 순서가 변경됩니다. 변경 즉시 Firebase 동기화.</div></div></div>
+</section>
+
+<!-- 05 직원 추가 -->
+<section class="sec" id="emp-add">
+  <div class="sec-hdr"><div class="sec-num">05</div><div class="sec-title">직원 추가</div></div>
+  <div class="steps">
+    <div class="step"><div class="step-dot">①</div><div class="step-body"><div class="step-title">컨트롤 바 + 직원 추가 클릭</div><div class="step-desc">과거 달 조회 중에는 버튼이 표시되지 않습니다.</div></div></div>
+    <div class="step"><div class="step-dot">②</div><div class="step-body"><div class="step-title">구분·성명·현장 발령일 입력 후 추가</div><div class="step-desc"><b>발령일 미입력 시 기본값 2026-04-01 자동 적용.</b> 발령일 이전 날짜는 비활성(빗금) 처리됩니다.</div></div></div>
+  </div>
+  <div class="tip tip-info"><span class="tip-icon">ℹ️</span><span>직원 추가는 <b>현재 달 이후에만 반영</b>됩니다. 이전 달 기록은 보존됩니다.</span></div>
+</section>
+
+<!-- 06 직원 수정·삭제 -->
+<section class="sec" id="emp-edit">
+  <div class="sec-hdr"><div class="sec-num">06</div><div class="sec-title">직원 수정·삭제</div></div>
+  <div class="steps">
+    <div class="step"><div class="step-dot">✎</div><div class="step-body"><div class="step-title">성명 셀 클릭 → 수정 모달</div><div class="step-desc">구분·성명·발령일 수정 후 저장. 현재 달 이후에만 반영됩니다.</div></div></div>
+    <div class="step"><div class="step-dot">🗑</div><div class="step-body"><div class="step-title">삭제 버튼 → 확인 후 삭제</div><div class="step-desc">현재 달 이후 근무표에서만 삭제됩니다. 이전 달 기록은 보존됩니다.</div></div></div>
+  </div>
+</section>
+
+<!-- 07 현장 발령일 -->
+<section class="sec" id="emp-join">
+  <div class="sec-hdr"><div class="sec-num">07</div><div class="sec-title">현장 발령일 설정</div></div>
+  <div class="tip tip-info"><span class="tip-icon">📌</span><span>발령일을 지정하면 <b>발령일 이전 날짜는 근무·휴무·총원 집계에서 모두 제외</b>됩니다.</span></div>
+  <table class="tbl" style="margin-top:12px">
+    <thead><tr><th>항목</th><th>발령일 이전</th><th>발령일 이후</th></tr></thead>
+    <tbody>
+      <tr><td>셀 표시</td><td><span class="bdg b-gray">빗금 회색 (클릭 불가)</span></td><td>정상 표시</td></tr>
+      <tr><td>근무인원수</td><td><span class="bdg b-red">제외</span></td><td><span class="bdg b-grn">포함</span></td></tr>
+      <tr><td>휴무계(●)</td><td><span class="bdg b-red">제외</span></td><td><span class="bdg b-grn">포함</span></td></tr>
+      <tr><td>총원 통계</td><td><span class="bdg b-red">제외</span></td><td><span class="bdg b-grn">포함</span></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 08 직원 순서 변경 -->
+<section class="sec" id="emp-order">
+  <div class="sec-hdr"><div class="sec-num">08</div><div class="sec-title">직원 순서 변경</div></div>
+  <div class="step"><div class="step-dot">⠿</div><div class="step-body"><div class="step-title">맨 왼쪽 ⠿ 핸들 드래그 → 원하는 위치에 드롭</div><div class="step-desc">현재 달 이후에만 반영됩니다. 이전 달 순서는 유지됩니다.</div></div></div>
+</section>
+
+<!-- 09 휴무 등록 -->
+<section class="sec" id="off">
+  <div class="sec-hdr"><div class="sec-num">09</div><div class="sec-title">휴무(●) 등록·해제</div></div>
+  <div class="steps">
+    <div class="step"><div class="step-dot">●</div><div class="step-body"><div class="step-title">날짜 셀 <b>좌클릭</b> → 휴무 등록</div><div class="step-desc">녹색 배경 + ● 표시. 다시 클릭하면 해제. 휴무계 +1, 근무인원수에서 제외.</div></div></div>
+  </div>
+  <hr class="sec">
+  <div style="font-size:12px;font-weight:700;color:#0a2342;margin-bottom:8px">셀 색상 안내</div>
+  <div class="cell-row">
+    <div class="cell-chip"><div class="chip-box" style="background:#e8f4fd;color:#1565a8">토</div>토요일</div>
+    <div class="cell-chip"><div class="chip-box" style="background:#fff0f0;color:#c0392b">일</div>일요일·공휴일</div>
+    <div class="cell-chip"><div class="chip-box" style="background:#f0faf4;color:#1a7a40">임</div>임의 지정 휴일</div>
+    <div class="cell-chip"><div class="chip-box" style="background:#c8e8d0;color:#1a7a40">●</div>휴무</div>
+    <div class="cell-chip"><div class="chip-box" style="background:#ddeeff;color:#0d5aa7">교</div>현장미근무</div>
+    <div class="cell-chip"><div class="chip-box" style="background:#eee;color:#aaa;font-size:8px">//</div>발령 전</div>
+  </div>
+</section>
+
+<!-- 10 현장미근무 -->
+<section class="sec" id="absent">
+  <div class="sec-hdr"><div class="sec-num">10</div><div class="sec-title">현장미근무 등록</div></div>
+  <div class="steps">
+    <div class="step"><div class="step-dot">①</div><div class="step-body"><div class="step-title">날짜 셀 <b>우클릭</b> → 사유 선택 팝업</div><div class="step-desc">📚 교육 · ✈ 출장 · 🏥 병가 · 📋 기타 중 선택. 스카이블루 배경 + 첫 글자 표시.</div></div></div>
+    <div class="step"><div class="step-dot">②</div><div class="step-body"><div class="step-title">해제 방법</div><div class="step-desc">같은 사유 재클릭 또는 ✕ 현장미근무 해제 버튼. 셀 좌클릭으로도 해제됩니다.</div></div></div>
+  </div>
+  <table class="tbl" style="margin-top:10px">
+    <thead><tr><th>구분</th><th>휴무계</th><th>근무인원수</th><th>총원</th></tr></thead>
+    <tbody>
+      <tr><td><span class="bdg b-grn">휴무 ●</span></td><td><span class="bdg b-blue">+1 포함</span></td><td><span class="bdg b-red">제외</span></td><td><span class="bdg b-grn">포함</span></td></tr>
+      <tr><td><span class="bdg b-ppl">현장미근무(교·출·병·기)</span></td><td><span class="bdg b-gray">미포함</span></td><td><span class="bdg b-red">제외</span></td><td><span class="bdg b-grn">포함</span></td></tr>
+      <tr><td><span class="bdg b-gray">발령일 이전</span></td><td><span class="bdg b-gray">미포함</span></td><td><span class="bdg b-red">제외</span></td><td><span class="bdg b-red">제외</span></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 11 일괄 휴무 -->
+<section class="sec" id="bulk">
+  <div class="sec-hdr"><div class="sec-num">11</div><div class="sec-title">일괄 휴무</div></div>
+  <div class="steps">
+    <div class="step"><div class="step-dot">①</div><div class="step-body"><div class="step-title">📋 일괄 휴무 버튼 → 패널 펼침</div><div class="step-desc">전체 / 평일 / 토요일 / 일요일 / 공휴일 빠른 선택 또는 날짜 개별 클릭(복수 가능)</div></div></div>
+    <div class="step"><div class="step-dot">②</div><div class="step-body"><div class="step-title">✅ 전체 휴무 등록 또는 🗑 전체 휴무 해제</div><div class="step-desc">선택 날짜에 현장 전체 직원 휴무(●)를 일괄 처리합니다.</div></div></div>
+  </div>
+</section>
+
+<!-- 12 비고 -->
+<section class="sec" id="note">
+  <div class="sec-hdr"><div class="sec-num">12</div><div class="sec-title">비고(NOTE) 입력</div></div>
+  <div class="step"><div class="step-dot">✎</div><div class="step-body"><div class="step-title">근무표 맨 우측 NOTE 셀 클릭 → 입력 팝오버</div><div class="step-desc">직원별·월별로 독립 저장됩니다. 월을 이동하면 해당 달 비고만 표시됩니다. PDF·엑셀에 포함.</div></div></div>
+</section>
+
+<!-- 13 공휴일 관리 -->
+<section class="sec" id="holiday">
+  <div class="sec-hdr"><div class="sec-num">13</div><div class="sec-title">공휴일 관리</div></div>
+  <div class="steps">
+    <div class="step"><div class="step-dot">🔄</div><div class="step-body"><div class="step-title">📡 구글 캘린더 대한민국 공휴일 자동 업데이트</div><div class="step-desc">📅 공휴일 관리 → 최상단 버튼 클릭. 로그인 없이 공식 공휴일 자동 로드. 앱 시작 시에도 자동 실행.</div></div></div>
+    <div class="step"><div class="step-dot">+</div><div class="step-body"><div class="step-title">임의 휴일 추가·삭제</div><div class="step-desc">날짜 선택 + 명칭 입력 후 추가. 목록의 ✕ 버튼으로 삭제. 3개 현장 공통 적용.</div></div></div>
+  </div>
+</section>
+
+<!-- 14 공지사항 -->
+<section class="sec" id="notice">
+  <div class="sec-hdr"><div class="sec-num">14</div><div class="sec-title">공지사항</div></div>
+  <div class="step"><div class="step-dot">✏️</div><div class="step-body"><div class="step-title">테이블 하단 ✏️ 편집 → 입력 후 저장</div><div class="step-desc">현장별·<b>월별</b>로 독립 저장됩니다. 헤더에 년월 표시. PDF 하단에 자동 포함.</div></div></div>
+</section>
+
+<!-- 15 상단 인원 통계 -->
+<section class="sec" id="header">
+  <div class="sec-hdr"><div class="sec-num">15</div><div class="sec-title">상단 인원 통계</div></div>
+  <div class="cards">
+    <div class="card"><div class="card-icon" style="color:#4ade80">근무</div><div class="card-title">근무 N명</div><div class="card-body">기준일 전체 현장 실제 근무 인원 (발령일·휴무·미근무 제외)</div></div>
+    <div class="card"><div class="card-icon" style="color:#f87171">휴무</div><div class="card-title">휴무 N명</div><div class="card-body">기준일 전체 현장 휴무(●) + 현장미근무 인원 합산</div></div>
+    <div class="card"><div class="card-icon" style="color:#fff;background:#0a2342;border-radius:4px;padding:2px 5px;font-size:13px">총원</div><div class="card-title">총원 N명</div><div class="card-body">기준일 기준 발령일 이후인 전체 현장 등록 직원 수</div></div>
+    <div class="card"><div class="card-icon">📅</div><div class="card-title">기준일 변경</div><div class="card-body">날짜 입력 필드에서 기준일 변경 가능. <b>오늘</b> 버튼으로 오늘 기준으로 복귀.</div></div>
+  </div>
+</section>
+
+<!-- 16 PDF·엑셀 -->
+<section class="sec" id="pdf">
+  <div class="sec-hdr"><div class="sec-num">16</div><div class="sec-title">PDF·엑셀 저장</div></div>
+  <table class="tbl">
+    <thead><tr><th>항목</th><th>PDF 저장</th><th>엑셀 저장</th></tr></thead>
+    <tbody>
+      <tr><td>버튼</td><td>컨트롤 바 <b>PDF 저장</b></td><td>컨트롤 바 <b>엑셀 저장</b></td></tr>
+      <tr><td>형식</td><td>A3 가로 PDF</td><td>.xlsx (셀 색상 포함)</td></tr>
+      <tr><td>포함 내용</td><td>제목·테이블·공지사항</td><td>헤더·직원 행·근무인원수</td></tr>
+      <tr><td>발령일 이전</td><td>회색 셀 표시</td><td>- 표시</td></tr>
+      <tr><td>다크모드</td><td>어두운 배경 그대로</td><td>색상 적용</td></tr>
+      <tr><td>파일명</td><td>휴무근무표_현장_연월.pdf</td><td>휴무근무표_현장_연월.xlsx</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 17 실시간 공유 -->
+<section class="sec" id="sync">
+  <div class="sec-hdr"><div class="sec-num">17</div><div class="sec-title">실시간 공유 동작</div></div>
+  <table class="tbl">
+    <thead><tr><th>헤더 표시</th><th>의미</th></tr></thead>
+    <tbody>
+      <tr><td><span class="bdg b-grn">🟢 실시간 공유 ON</span></td><td>Firebase 연결 정상. 변경 시 모든 접속자 화면 자동 갱신.</td></tr>
+      <tr><td><span class="bdg b-org">🟡 저장 중...</span></td><td>Firebase에 저장 중 (600ms debounce)</td></tr>
+      <tr><td><span class="bdg b-red">🔴 오프라인</span></td><td>Firebase 미연결. 로컬 저장만 동작.</td></tr>
+    </tbody>
+  </table>
+  <div class="tip tip-info" style="margin-top:10px"><span class="tip-icon">🌐</span><span>같은 URL(<code>https://i2002da.github.io/ipark-roster/</code>)에 접속한 모든 기기가 동일한 데이터를 공유합니다.</span></div>
+</section>
+
+<!-- 18 FAQ -->
+<section class="sec" id="faq">
+  <div class="sec-hdr"><div class="sec-num">18</div><div class="sec-title">자주 묻는 질문</div></div>
+  <div class="steps">
+    <div class="step"><div class="step-dot">Q</div><div class="step-body"><div class="step-title">2026년 4월 이전으로 이동이 안 돼요.</div><div class="step-desc">시스템 최소 표시 월이 <b>2026년 4월</b>로 설정되어 있습니다. ◁ 버튼이 비활성화됩니다.</div></div></div>
+    <div class="step"><div class="step-dot">Q</div><div class="step-body"><div class="step-title">직원을 추가했는데 이전 달에도 나타나요.</div><div class="step-desc">발령일을 올바르게 설정하면 해결됩니다. 직원 수정에서 발령일을 변경하세요.</div></div></div>
+    <div class="step"><div class="step-dot">Q</div><div class="step-body"><div class="step-title">공휴일이 표시되지 않아요.</div><div class="step-desc">📅 공휴일 관리 → <b>📡 구글 캘린더 자동 업데이트</b>를 클릭하세요. 앱 시작 시 자동으로도 갱신됩니다.</div></div></div>
+    <div class="step"><div class="step-dot">Q</div><div class="step-body"><div class="step-title">다른 기기에서 변경한 내용이 안 보여요.</div><div class="step-desc">헤더의 동기화 상태가 🟢인지 확인하세요. 🔴이면 인터넷 연결을 확인하고 새로고침하세요.</div></div></div>
+    <div class="step"><div class="step-dot">Q</div><div class="step-body"><div class="step-title">현장미근무와 휴무의 차이는?</div><div class="step-desc">휴무(●)는 <b>휴무계에 +1</b> 카운트됩니다. 현장미근무(교육·출장 등)는 휴무계에 포함되지 않고 근무인원수에서만 제외됩니다.</div></div></div>
+  </div>
+</section>
+
+<div style="text-align:center;font-size:10px;color:#7a9bbf;padding-top:10px">
+  천안 IPC 통합현장 휴무계획표 사용 매뉴얼 v4.8 · 2026-05-06
+</div>
+
+</main>
+</div>
+
+<script>
+// 사이드바 활성 링크 추적
+const secs=document.querySelectorAll('section[id]');
+const links=document.querySelectorAll('.side-a');
+function setActive(){
+  let cur='';
+  secs.forEach(s=>{if(window.scrollY+80>=s.offsetTop)cur=s.id;});
+  links.forEach(a=>{
+    const on=a.getAttribute('href')==='#'+cur;
+    a.classList.toggle('on',on);
+  });
+}
+window.addEventListener('scroll',setActive,{passive:true});
+setActive();
+</script>
+</body>
+</html>
