@@ -171,6 +171,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg-page);color:var(-
 .btn-del{background:#c0392b;color:#fff}.btn-del:hover{background:#a93226}
 .btn-pdf{background:linear-gradient(135deg,#0a2342,#1a6fc4);color:#fff;box-shadow:0 1px 4px rgba(10,35,66,.2)}.btn-pdf:hover{background:linear-gradient(135deg,#0d2e56,#1565a8)}
 .btn-excel{background:linear-gradient(135deg,#1a5c30,#2e8b4a);color:#fff;box-shadow:0 1px 4px rgba(26,92,48,.2)}.btn-excel:hover{background:linear-gradient(135deg,#14612f,#1a7a40)}
+.btn-manual{background:transparent;color:var(--tx3);border:1px solid var(--bd-m);text-decoration:none}.btn-manual:hover{background:var(--bg-hov);color:var(--acc);border-color:var(--acc)}
 .btn-bulk{background:var(--bulk-bg);color:var(--bulk-tx);border:1px solid var(--bulk-bd)}.btn-bulk:hover{opacity:.85}
 .btn-warn{background:transparent;color:#c0392b;border:1px solid #e8a0a0}.btn-warn:hover{background:#fff0f0}
 [data-theme="dark"] .btn-warn{color:#f87171;border-color:#7f1d1d}.btn-warn:hover{background:#2a0a0a}
@@ -1105,7 +1106,7 @@ async function loadState(){
 
 // ── 테마 ──
 // ── 버전 정보 (여기만 수정하면 화면에 즉시 반영) ──
-const APP_VERSION = 'v4.8';
+const APP_VERSION = 'v4.9';
 const APP_DATE    = '2026-05-06';
 
 function applyVersion(){
@@ -1270,6 +1271,7 @@ function renderTable(){
       ${!isPast?'<button class="btn btn-out" data-action="openAddEmp">+ 직원 추가</button>':''}
       <button class="btn btn-pdf" data-action="exportPDF">PDF 저장</button>
       <button class="btn btn-excel" data-action="exportExcel">엑셀 저장</button>
+      <a class="btn btn-manual" href="https://i2002da.github.io/ipark-roster/manual.html" target="_blank" rel="noopener">📖 매뉴얼</a>
     </div>
 
     <div class="bulk-panel" id="bulkPanel">
