@@ -580,6 +580,13 @@ thead th.c-tot-h,thead th.c-note-h{position:sticky;z-index:3;background:#0a2342;
 <div class="mover" id="holM">
   <div class="modal">
     <div class="m-title">공휴일 / 임의 휴일 관리</div>
+    <div style="margin-bottom:12px">
+      <button class="btn" id="btnFetchHol"
+        style="width:100%;background:linear-gradient(135deg,#0a2342,#1a6fc4);color:#fff;justify-content:center;gap:6px;padding:9px">
+        📡 구글 캘린더 대한민국 공휴일 자동 업데이트
+      </button>
+      <div style="font-size:10px;color:var(--tx4);margin-top:4px;text-align:center">로그인 없이 공식 공휴일을 자동으로 불러옵니다</div>
+    </div>
     <div id="holList" class="hol-list"></div>
     <div class="m-form">
       <div class="f-row"><label class="f-lbl">날짜</label><input type="date" class="f-inp" id="holDate"></div>
@@ -1051,7 +1058,7 @@ async function loadState(){
 
 // ── 테마 ──
 // ── 버전 정보 (여기만 수정하면 화면에 즉시 반영) ──
-const APP_VERSION = 'v4.6';
+const APP_VERSION = 'v4.7';
 const APP_DATE    = '2026-05-06';
 
 function applyVersion(){
@@ -1270,7 +1277,11 @@ function renderTable(){
             const ea=absMap[seid]||{};
             // 휴무계: 현재 달 날짜만 카운트 (다른 달 데이터 혼입 방지)
             const monthPrefix=dkey(y,m,1).slice(0,7);  // 'YYYY-MM'
-            const cnt=Object.keys(eo).filter(k=>k.startsWith(monthPrefix)).length;
+            // 휴무계: 현재 달 + 발령일 이후 날짜만 카운트
+            const jd=emp.joinDate||'2026-04-01';
+            const cnt=Object.keys(eo).filter(k=>
+              k.startsWith(monthPrefix) && k>=jd
+            ).length;
             const _nraw=nts[seid]||(nts[eid]?nts[eid]:null);
             const nv=_nraw
               ?(typeof _nraw==='object'?_nraw[_noteYm]||'':_nraw)
@@ -1412,6 +1423,7 @@ document.getElementById('btnEditEmpCancel').addEventListener('click',()=>closeMo
 document.getElementById('btnSaveEmp').addEventListener('click',saveEmp);
 document.getElementById('btnHolClose').addEventListener('click',()=>closeModal('holM'));
 document.getElementById('btnHolAdd').addEventListener('click',addHol);
+document.getElementById('btnFetchHol').addEventListener('click',fetchGCalHolidays);
 document.getElementById('btnNoteCancelPop').addEventListener('click',closeNotePopup);
 document.getElementById('btnNoteSavePop').addEventListener('click',saveNote);
 document.querySelectorAll('.mover').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
@@ -1779,6 +1791,48 @@ async function removeSite(sid){
   renderTable();
 }
 
+// ── 구글 캘린더 iCal 파싱 ─────────────────────────────────
+const GCAL_URL='https://calendar.google.com/calendar/ical/ko.south_korea%23holiday%40group.v.calendar.google.com/public/basic.ics';
+const PROXY='https://api.allorigins.win/raw?url=';
+
+async function fetchGCalHolidays(){
+  const btn=document.getElementById('btnFetchHol');
+  if(btn){btn.textContent='📡 불러오는 중...';btn.disabled=true;}
+  try{
+    const res=await fetch(PROXY+encodeURIComponent(GCAL_URL));
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const ical=await res.text();
+    const added=parseIcal(ical);
+    saveState();renderHolList();
+    if(btn){btn.textContent='✅ '+added+'개 업데이트';btn.disabled=false;}
+    setTimeout(()=>{if(btn)btn.textContent='📡 공휴일 자동 업데이트';},2500);
+    renderTable();
+  }catch(e){
+    console.error('캘린더 오류:',e);
+    if(btn){btn.textContent='⚠ 실패 — 재시도';btn.disabled=false;}
+  }
+}
+
+function parseIcal(text){
+  // VEVENT 블록 추출
+  const events=text.split('BEGIN:VEVENT').slice(1);
+  let added=0;
+  events.forEach(ev=>{
+    const dtm=ev.match(/DTSTART;VALUE=DATE:(\d{4})(\d{2})(\d{2})/);
+    const sum=ev.match(/SUMMARY:(.+)/);
+    if(!dtm||!sum) return;
+    const [,y,m,d]=dtm;
+    const name=sum[1].trim().replace(/\r/g,'');
+    const key=`${y}-${m}-${d}`;
+    // 기존에 없는 공휴일만 추가 (임의 추가는 유지)
+    if(!S.holidays[key]){
+      S.holidays[key]=name;
+      added++;
+    }
+  });
+  return added;
+}
+
 function openHolModal(){
   renderHolList();
   document.getElementById('holDate').value=`${S.year}-${String(S.month).padStart(2,'0')}-01`;
@@ -1985,7 +2039,8 @@ async function exportPDF(){
       const eid=+emp.id; const seid=String(eid);
       const eo=offs[seid]||{};
       const ea=absData[seid]||{};
-      const cnt=Object.keys(eo).filter(k=>k.startsWith(monthPfx)).length;
+      const jd_cnt=emp.joinDate||'2026-04-01';
+      const cnt=Object.keys(eo).filter(k=>k.startsWith(monthPfx)&&k>=jd_cnt).length;
       const _pnraw=nts[seid]||nts[String(eid)]||nts[eid];
       const noteVal=_pnraw
         ?(typeof _pnraw==='object'?_pnraw[pdfMonthPrefix.replace('-','')]||'':_pnraw)
@@ -2119,7 +2174,8 @@ async function exportExcel(){
       const seid=String(+emp.id);
       const eo=offs[seid]||{};
       const ea=absData[seid]||{};
-      const cnt=Object.keys(eo).filter(k=>k.startsWith(monthPfx)).length;
+      const jd_xls=emp.joinDate||'2026-04-01';
+      const cnt=Object.keys(eo).filter(k=>k.startsWith(monthPfx)&&k>=jd_xls).length;
       const cells=[i+1,emp.dept||'',emp.name];
       DI.forEach(di=>{
         if(di.k<(emp.joinDate||'2026-04-01')){ cells.push('-'); return; }
