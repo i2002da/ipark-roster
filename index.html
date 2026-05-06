@@ -475,8 +475,8 @@ thead th.c-tot-h,thead th.c-note-h{position:sticky;z-index:3;background:#0a2342;
     <button class="btn btn-site-manage" id="btnSiteMgr">🏗 현장 관리</button>
     <button class="btn btn-out" id="btnHol" style="color:rgba(255,255,255,.85);border-color:rgba(255,255,255,.28);background:rgba(255,255,255,.1)">📅 공휴일 관리</button>
     <div style="font-size:10px;color:rgba(255,255,255,.6);text-align:right;line-height:1.5;padding:0 2px;border-left:1px solid rgba(255,255,255,.2);padding-left:10px">
-      <div style="color:rgba(255,255,255,.9);font-weight:700;letter-spacing:.3px" id="verNum">v3.4</div>
-      <div style="color:rgba(255,255,255,.55)" id="verDate">2026-05-03</div>
+      <div style="color:rgba(255,255,255,.9);font-weight:700;letter-spacing:.3px" id="verNum"></div>
+      <div style="color:rgba(255,255,255,.55)" id="verDate"></div>
     </div>
     <button class="theme-btn" id="btnTheme">
       <span id="thIcon" style="font-size:15px">🌙</span>
@@ -1051,14 +1051,14 @@ async function loadState(){
 
 // ── 테마 ──
 // ── 버전 정보 (여기만 수정하면 화면에 즉시 반영) ──
-const APP_VERSION = 'v4.5';
-const APP_DATE    = '2026-05-05';
+const APP_VERSION = 'v4.6';
+const APP_DATE    = '2026-05-06';
 
 function applyVersion(){
   const vn=document.getElementById('verNum');
   const vd=document.getElementById('verDate');
-  if(vn) vn.textContent=APP_VERSION;
-  if(vd) vd.textContent=APP_DATE;
+  if(vn) vn.textContent=APP_VERSION;   // JS 상수에서 항상 주입
+  if(vd) vd.textContent=APP_DATE;      // JS 상수에서 항상 주입
 }
 function applyTheme(t){
   document.documentElement.setAttribute('data-theme',t);
