@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>현장직원 휴무근무표</title>
+<!-- Firebase SDK 정적 로드 (동적 로드 오류 방지) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
 /* ── 라이트 모드 (기본) : 딥블루 · 스카이블루 · 화이트 · 라이트그레이 ── */
@@ -841,31 +844,17 @@ let _saveTimer = null;      // debounce 타이머
 let _unsubscribe = null;    // 실시간 리스너 해제 함수
 
 // ── Firebase SDK 동적 로드 ──────────────────────────────────────
-function loadScript(src){
-  return new Promise((res,rej)=>{
-    if(document.querySelector(`script[src="${src}"]`)){ res(); return; }
-    const s=document.createElement('script');
-    s.src=src; s.async=false;
-    s.onload=res;
-    s.onerror=()=>rej(new Error('스크립트 로드 실패: '+src));
-    document.head.appendChild(s);
-  });
-}
-
+// Firebase SDK는 <head>에서 정적 로드됨
+// loadFirebase()는 firebase 객체 준비 확인만 수행
 async function loadFirebase(){
-  if(window._fbLoaded && window.firebase) return;
-  // 반드시 직렬 로드 (app 먼저, database 나중)
-  const VER='10.12.2';
-  await loadScript(`https://www.gstatic.com/firebasejs/${VER}/firebase-app-compat.js`);
-  await loadScript(`https://www.gstatic.com/firebasejs/${VER}/firebase-database-compat.js`);
-  // firebase 객체가 준비될 때까지 최대 3초 대기
-  for(let i=0;i<30;i++){
-    if(window.firebase && window.firebase.database) break;
+  // 이미 로드된 경우 즉시 반환
+  if(window.firebase && window.firebase.database) return;
+  // 페이지 로드 중 아직 준비 안 됐으면 최대 5초 대기
+  for(let i=0;i<50;i++){
+    if(window.firebase && window.firebase.database) return;
     await new Promise(r=>setTimeout(r,100));
   }
-  if(!window.firebase || !window.firebase.database)
-    throw new Error('Firebase SDK 로드 실패');
-  window._fbLoaded=true;
+  throw new Error('Firebase SDK를 불러올 수 없습니다. 인터넷 연결을 확인하세요.');
 }
 
 // ── 동기화 UI ──────────────────────────────────────────────────
@@ -1030,8 +1019,11 @@ async function loadFromCloud(){
     await loadFirebase();
 
     // 초기화 (이미 초기화된 앱 재사용)
-    if(!firebase.apps.length){
-      firebase.initializeApp(FIREBASE_CONFIG);
+    try{
+      if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    }catch(initErr){
+      // 이미 초기화된 경우 기존 앱 사용
+      console.warn('Firebase 앱 초기화:', initErr.message);
     }
     _db = firebase.database().ref(DB_PATH);
 
@@ -1071,7 +1063,6 @@ async function loadFromCloud(){
     setTimeout(async()=>{
       if(_db) return;  // 이미 연결됨
       console.log('[Firebase] 재연결 시도...');
-      window._fbLoaded=false;  // SDK 재로드 허용
       await loadFromCloud();
       buildTabs(); renderTable();
     }, 5000);
@@ -1127,7 +1118,7 @@ async function loadState(){
 
 // ── 테마 ──
 // ── 버전 정보 (여기만 수정하면 화면에 즉시 반영) ──
-const APP_VERSION = 'v5.2';
+const APP_VERSION = 'v5.3';
 const APP_DATE    = '2026-05-07';
 
 function applyVersion(){
