@@ -1106,8 +1106,8 @@ async function loadState(){
 
 // ── 테마 ──
 // ── 버전 정보 (여기만 수정하면 화면에 즉시 반영) ──
-const APP_VERSION = 'v5.0';
-const APP_DATE    = '2026-05-06';
+const APP_VERSION = 'v5.1';
+const APP_DATE    = '2026-05-07';
 
 function applyVersion(){
   const vn=document.getElementById('verNum');
@@ -1891,11 +1891,19 @@ function parseIcal(text){
     const dtm=ev.match(/DTSTART;VALUE=DATE:(\d{4})(\d{2})(\d{2})/);
     const sum=ev.match(/SUMMARY:(.+)/);
     if(!dtm||!sum) return;
+
+    // DESCRIPTION 행 추출: \r\n / \n 모두 처리
+    let desc='';
+    const rawLines=ev.replace(/\r/g,'').split('\n');
+    for(const line of rawLines){
+      if(line.startsWith('DESCRIPTION:')){ desc=line.slice(12).trim(); break; }
+    }
+    // 공휴일만 수집, 기념일(식목일·어버이날·국군의날 등) 제외
+    if(desc && desc!=='공휴일') return;
+
     const [,y,m,d]=dtm;
     const name=sum[1].trim().replace(/\r/g,'');
-    const key=`${y}-${m}-${d}`;
-    // _custom 플래그 없는 날짜는 iCal로 덮어씀 (최신 유지)
-    // _custom 플래그 있는 날짜는 사용자 수동 추가분 → 건드리지 않음
+    const key=y+'-'+m+'-'+d;
     if(!S.holidays[key+'_custom']){
       if(!S.holidays[key]) added++;
       S.holidays[key]=name;
