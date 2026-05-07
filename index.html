@@ -841,22 +841,31 @@ let _saveTimer = null;      // debounce 타이머
 let _unsubscribe = null;    // 실시간 리스너 해제 함수
 
 // ── Firebase SDK 동적 로드 ──────────────────────────────────────
-function loadFirebase(){
-  return new Promise((resolve, reject)=>{
-    if(window._fbLoaded){ resolve(); return; }
-    const urls=[
-      'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',
-      'https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js'
-    ];
-    let loaded=0;
-    urls.forEach(src=>{
-      const s=document.createElement('script');
-      s.src=src;
-      s.onload=()=>{ if(++loaded===urls.length){ window._fbLoaded=true; resolve(); } };
-      s.onerror=reject;
-      document.head.appendChild(s);
-    });
+function loadScript(src){
+  return new Promise((res,rej)=>{
+    if(document.querySelector(`script[src="${src}"]`)){ res(); return; }
+    const s=document.createElement('script');
+    s.src=src; s.async=false;
+    s.onload=res;
+    s.onerror=()=>rej(new Error('스크립트 로드 실패: '+src));
+    document.head.appendChild(s);
   });
+}
+
+async function loadFirebase(){
+  if(window._fbLoaded && window.firebase) return;
+  // 반드시 직렬 로드 (app 먼저, database 나중)
+  const VER='10.12.2';
+  await loadScript(`https://www.gstatic.com/firebasejs/${VER}/firebase-app-compat.js`);
+  await loadScript(`https://www.gstatic.com/firebasejs/${VER}/firebase-database-compat.js`);
+  // firebase 객체가 준비될 때까지 최대 3초 대기
+  for(let i=0;i<30;i++){
+    if(window.firebase && window.firebase.database) break;
+    await new Promise(r=>setTimeout(r,100));
+  }
+  if(!window.firebase || !window.firebase.database)
+    throw new Error('Firebase SDK 로드 실패');
+  window._fbLoaded=true;
 }
 
 // ── 동기화 UI ──────────────────────────────────────────────────
@@ -866,11 +875,11 @@ function setSyncUI(state, msg){
   const toast = document.getElementById('syncToast');
   if(!dot) return;
   dot.className = 'sync-dot';
-  if(state==='ok')     { lbl.textContent = '실시간 동기화 중'; }
-  else if(state==='sync'){ dot.classList.add('sync'); lbl.textContent = '저장 중...'; }
-  else if(state==='poll'){ dot.classList.add('sync'); lbl.textContent = '연결 중...'; }
-  else if(state==='err') { dot.classList.add('err');  lbl.textContent = '오프라인'; }
-  else if(state==='online'){ lbl.textContent = '실시간 공유 ON'; }
+  if(state==='ok')      { lbl.textContent = '실시간 동기화 중'; }
+  else if(state==='sync') { dot.classList.add('sync'); lbl.textContent = '저장 중...'; }
+  else if(state==='poll') { dot.classList.add('sync'); lbl.textContent = '연결 중...'; }
+  else if(state==='err')  { dot.classList.add('err');  lbl.textContent = '오프라인'; }
+  else if(state==='online'){ lbl.textContent = '실시간 공유 ON'; }  // dot = 기본(녹색)
   if(msg){
     toast.textContent = msg;
     toast.className = 'sync-toast '+(state==='err'?'err':state==='ok'?'ok':state==='warn'?'warn':'loading');
@@ -1020,24 +1029,28 @@ async function loadFromCloud(){
     setSyncUI('poll', '🔄 Firebase 연결 중...');
     await loadFirebase();
 
-    // 이미 초기화돼 있으면 재사용
-    if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    // 초기화 (이미 초기화된 앱 재사용)
+    if(!firebase.apps.length){
+      firebase.initializeApp(FIREBASE_CONFIG);
+    }
     _db = firebase.database().ref(DB_PATH);
 
-    // 최초 1회 데이터 읽기
-    const snap = await _db.once('value');
+    // 연결 확인 후 데이터 읽기 (타임아웃 10초)
+    const snap = await Promise.race([
+      _db.once('value'),
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error('읽기 타임아웃')),10000))
+    ]);
     if(snap.exists()){
       applyRemote(snap.val());
     }
 
-    // 실시간 리스너 등록 (다른 사용자 변경 즉시 수신)
+    // 실시간 리스너 등록
     if(_unsubscribe) _unsubscribe();
-    _unsubscribe = ()=>_db.off('value');   // 해제 함수
+    _unsubscribe = ()=>_db.off('value');
     _db.on('value', snap=>{
       if(!snap.exists()) return;
-      const incoming = JSON.stringify(snap.val());
-      // 내가 방금 저장한 것과 동일하면 무시
-      if(incoming === _lastSent) return;
+      const incoming=JSON.stringify(snap.val());
+      if(incoming===_lastSent) return;
       applyRemote(snap.val());
       setSyncUI('ok', '🔄 다른 사용자 변경 반영');
       buildTabs();
@@ -1047,13 +1060,21 @@ async function loadFromCloud(){
     setSyncUI('online');
     return true;
   }catch(e){
-    console.error('Firebase 오류:', e);
-    // 폴백: localStorage
+    console.error('Firebase 오류:', e.message);
+    // localStorage 폴백
     try{
-      const d = JSON.parse(localStorage.getItem('hdr_v10') || '{}');
+      const d=JSON.parse(localStorage.getItem('hdr_v10')||'{}');
       applyRemote(d);
     }catch(_){}
-    setSyncUI('err', '⚠ Firebase 연결 실패 — 로컬 저장 모드');
+    setSyncUI('err', '⚠ Firebase 연결 실패 (로컬 모드): '+e.message);
+    // 5초 후 자동 재시도 1회
+    setTimeout(async()=>{
+      if(_db) return;  // 이미 연결됨
+      console.log('[Firebase] 재연결 시도...');
+      window._fbLoaded=false;  // SDK 재로드 허용
+      await loadFromCloud();
+      buildTabs(); renderTable();
+    }, 5000);
     return false;
   }
 }
@@ -1106,7 +1127,7 @@ async function loadState(){
 
 // ── 테마 ──
 // ── 버전 정보 (여기만 수정하면 화면에 즉시 반영) ──
-const APP_VERSION = 'v5.1';
+const APP_VERSION = 'v5.2';
 const APP_DATE    = '2026-05-07';
 
 function applyVersion(){
@@ -1890,7 +1911,8 @@ function parseIcal(text){
   events.forEach(ev=>{
     const dtm=ev.match(/DTSTART;VALUE=DATE:(\d{4})(\d{2})(\d{2})/);
     const sum=ev.match(/SUMMARY:(.+)/);
-    const desc=ev.match(/DESCRIPTION:([\s\S]*?)(?:?
+    const desc=ev.match(/DESCRIPTION:([\s\S]*?)(?:
+?
 [A-Z])/);
     if(!dtm||!sum) return;
 
@@ -1900,7 +1922,8 @@ function parseIcal(text){
     if(descText && !descText.startsWith('공휴일')) return;
 
     const [,y,m,d]=dtm;
-    const name=sum[1].trim().replace(//g,'');
+    const name=sum[1].trim().replace(/
+/g,'');
     const key=`${y}-${m}-${d}`;
     // 사용자 수동 추가(_custom)는 유지, 나머지는 iCal 최신값으로 갱신
     if(!S.holidays[key+'_custom']){
