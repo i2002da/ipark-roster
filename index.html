@@ -4,9 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>현장직원 휴무근무표</title>
-<!-- Firebase SDK 정적 로드 (동적 로드 오류 방지) -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
 /* ── 라이트 모드 (기본) : 딥블루 · 스카이블루 · 화이트 · 라이트그레이 ── */
@@ -844,17 +841,22 @@ let _saveTimer = null;      // debounce 타이머
 let _unsubscribe = null;    // 실시간 리스너 해제 함수
 
 // ── Firebase SDK 동적 로드 ──────────────────────────────────────
-// Firebase SDK는 <head>에서 정적 로드됨
-// loadFirebase()는 firebase 객체 준비 확인만 수행
-async function loadFirebase(){
-  // 이미 로드된 경우 즉시 반환
-  if(window.firebase && window.firebase.database) return;
-  // 페이지 로드 중 아직 준비 안 됐으면 최대 5초 대기
-  for(let i=0;i<50;i++){
-    if(window.firebase && window.firebase.database) return;
-    await new Promise(r=>setTimeout(r,100));
-  }
-  throw new Error('Firebase SDK를 불러올 수 없습니다. 인터넷 연결을 확인하세요.');
+function loadFirebase(){
+  return new Promise((resolve, reject)=>{
+    if(window._fbLoaded){ resolve(); return; }
+    const urls=[
+      'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',
+      'https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js'
+    ];
+    let loaded=0;
+    urls.forEach(src=>{
+      const s=document.createElement('script');
+      s.src=src;
+      s.onload=()=>{ if(++loaded===urls.length){ window._fbLoaded=true; resolve(); } };
+      s.onerror=reject;
+      document.head.appendChild(s);
+    });
+  });
 }
 
 // ── 동기화 UI ──────────────────────────────────────────────────
@@ -864,11 +866,11 @@ function setSyncUI(state, msg){
   const toast = document.getElementById('syncToast');
   if(!dot) return;
   dot.className = 'sync-dot';
-  if(state==='ok')      { lbl.textContent = '실시간 동기화 중'; }
-  else if(state==='sync') { dot.classList.add('sync'); lbl.textContent = '저장 중...'; }
-  else if(state==='poll') { dot.classList.add('sync'); lbl.textContent = '연결 중...'; }
-  else if(state==='err')  { dot.classList.add('err');  lbl.textContent = '오프라인'; }
-  else if(state==='online'){ lbl.textContent = '실시간 공유 ON'; }  // dot = 기본(녹색)
+  if(state==='ok')     { lbl.textContent = '실시간 동기화 중'; }
+  else if(state==='sync'){ dot.classList.add('sync'); lbl.textContent = '저장 중...'; }
+  else if(state==='poll'){ dot.classList.add('sync'); lbl.textContent = '연결 중...'; }
+  else if(state==='err') { dot.classList.add('err');  lbl.textContent = '오프라인'; }
+  else if(state==='online'){ lbl.textContent = '실시간 공유 ON'; }
   if(msg){
     toast.textContent = msg;
     toast.className = 'sync-toast '+(state==='err'?'err':state==='ok'?'ok':state==='warn'?'warn':'loading');
@@ -1018,31 +1020,24 @@ async function loadFromCloud(){
     setSyncUI('poll', '🔄 Firebase 연결 중...');
     await loadFirebase();
 
-    // 초기화 (이미 초기화된 앱 재사용)
-    try{
-      if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-    }catch(initErr){
-      // 이미 초기화된 경우 기존 앱 사용
-      console.warn('Firebase 앱 초기화:', initErr.message);
-    }
+    // 이미 초기화돼 있으면 재사용
+    if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
     _db = firebase.database().ref(DB_PATH);
 
-    // 연결 확인 후 데이터 읽기 (타임아웃 10초)
-    const snap = await Promise.race([
-      _db.once('value'),
-      new Promise((_,rej)=>setTimeout(()=>rej(new Error('읽기 타임아웃')),10000))
-    ]);
+    // 최초 1회 데이터 읽기
+    const snap = await _db.once('value');
     if(snap.exists()){
       applyRemote(snap.val());
     }
 
-    // 실시간 리스너 등록
+    // 실시간 리스너 등록 (다른 사용자 변경 즉시 수신)
     if(_unsubscribe) _unsubscribe();
-    _unsubscribe = ()=>_db.off('value');
+    _unsubscribe = ()=>_db.off('value');   // 해제 함수
     _db.on('value', snap=>{
       if(!snap.exists()) return;
-      const incoming=JSON.stringify(snap.val());
-      if(incoming===_lastSent) return;
+      const incoming = JSON.stringify(snap.val());
+      // 내가 방금 저장한 것과 동일하면 무시
+      if(incoming === _lastSent) return;
       applyRemote(snap.val());
       setSyncUI('ok', '🔄 다른 사용자 변경 반영');
       buildTabs();
@@ -1052,20 +1047,13 @@ async function loadFromCloud(){
     setSyncUI('online');
     return true;
   }catch(e){
-    console.error('Firebase 오류:', e.message);
-    // localStorage 폴백
+    console.error('Firebase 오류:', e);
+    // 폴백: localStorage
     try{
-      const d=JSON.parse(localStorage.getItem('hdr_v10')||'{}');
+      const d = JSON.parse(localStorage.getItem('hdr_v10') || '{}');
       applyRemote(d);
     }catch(_){}
-    setSyncUI('err', '⚠ Firebase 연결 실패 (로컬 모드): '+e.message);
-    // 5초 후 자동 재시도 1회
-    setTimeout(async()=>{
-      if(_db) return;  // 이미 연결됨
-      console.log('[Firebase] 재연결 시도...');
-      await loadFromCloud();
-      buildTabs(); renderTable();
-    }, 5000);
+    setSyncUI('err', '⚠ Firebase 연결 실패 — 로컬 저장 모드');
     return false;
   }
 }
@@ -1118,8 +1106,8 @@ async function loadState(){
 
 // ── 테마 ──
 // ── 버전 정보 (여기만 수정하면 화면에 즉시 반영) ──
-const APP_VERSION = 'v5.3';
-const APP_DATE    = '2026-05-07';
+const APP_VERSION = 'v5.0';
+const APP_DATE    = '2026-05-06';
 
 function applyVersion(){
   const vn=document.getElementById('verNum');
@@ -1902,21 +1890,12 @@ function parseIcal(text){
   events.forEach(ev=>{
     const dtm=ev.match(/DTSTART;VALUE=DATE:(\d{4})(\d{2})(\d{2})/);
     const sum=ev.match(/SUMMARY:(.+)/);
-    const desc=ev.match(/DESCRIPTION:([\s\S]*?)(?:
-?
-[A-Z])/);
     if(!dtm||!sum) return;
-
-    // DESCRIPTION 필드가 '공휴일'인 항목만 가져옴
-    // '기념일'(국군의날·식목일·스승의날·섣달그믐·크리스마스이브 등)은 제외
-    const descText=desc?desc[1].trim():'';
-    if(descText && !descText.startsWith('공휴일')) return;
-
     const [,y,m,d]=dtm;
-    const name=sum[1].trim().replace(/
-/g,'');
+    const name=sum[1].trim().replace(/\r/g,'');
     const key=`${y}-${m}-${d}`;
-    // 사용자 수동 추가(_custom)는 유지, 나머지는 iCal 최신값으로 갱신
+    // _custom 플래그 없는 날짜는 iCal로 덮어씀 (최신 유지)
+    // _custom 플래그 있는 날짜는 사용자 수동 추가분 → 건드리지 않음
     if(!S.holidays[key+'_custom']){
       if(!S.holidays[key]) added++;
       S.holidays[key]=name;
