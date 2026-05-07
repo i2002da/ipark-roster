@@ -951,10 +951,12 @@ function applyRemote(d){
   }
   if(d.holidays){
     S.holidays=d.holidays;
-    // DEF_HOL의 누락 항목 보충 (Firebase에 없는 연도 자동 추가)
+    // DEF_HOL 누락 항목 보충
     Object.entries(DEF_HOL).forEach(([k,v])=>{
       if(!S.holidays[k]&&!S.holidays[k+'_custom']) S.holidays[k]=v;
     });
+    // 기념일 정리 (이전 버전에서 잘못 저장된 기념일 제거)
+    purgeAnniversaries();
   }
   if(d.notices){
     // 구버전 호환: notices[site]='문자열' → notices[site]={} 로 마이그레이션
@@ -1106,7 +1108,7 @@ async function loadState(){
 
 // ── 테마 ──
 // ── 버전 정보 (여기만 수정하면 화면에 즉시 반영) ──
-const APP_VERSION = 'v5.1';
+const APP_VERSION = 'v5.2';
 const APP_DATE    = '2026-05-07';
 
 function applyVersion(){
@@ -1922,6 +1924,23 @@ async function autoFetchHolidays(){
   }catch(e){
     console.warn('[공휴일] 자동 업데이트 실패 (DEF_HOL 사용):', e.message);
   }
+}
+
+// 기념일 날짜 패턴 (MM-DD) — 법정공휴일 아닌 기념일
+const ANNIV_MD=['05-08','05-15','04-05','10-01','12-24','12-31'];
+
+// Firebase에서 잘못 가져온 기념일을 holidays에서 제거
+// _custom 플래그가 있는 날짜는 사용자 수동 추가이므로 유지
+function purgeAnniversaries(){
+  Object.keys(S.holidays).forEach(k=>{
+    if(k.endsWith('_custom')) return;
+    const parts=k.split('-');
+    if(parts.length!==3) return;
+    const md=parts[1]+'-'+parts[2];
+    if(ANNIV_MD.includes(md)){
+      delete S.holidays[k];
+    }
+  });
 }
 
 function openHolModal(){
