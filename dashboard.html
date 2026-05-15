@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>천안 IPC 통합현장 근무현황</title>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Roboto+Mono:wght@400;700&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden}
+body{
+  font-family:'Noto Sans KR',sans-serif;
+  background:#0a1628;
+  color:#e8f4ff;
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+}
+
+/* ── 헤더 ── */
+.hdr{
+  background:linear-gradient(135deg,#0a2342 0%,#0d2e56 100%);
+  border-bottom:2px solid #1a6fc4;
+  padding:0 40px;
+  height:90px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-shrink:0;
+  box-shadow:0 4px 24px rgba(0,0,0,.4);
+}
+.hdr-left{display:flex;align-items:center;gap:20px}
+.hdr-logo{
+  width:52px;height:52px;border-radius:10px;
+  background:linear-gradient(135deg,#1a6fc4,#3d9bdc);
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;font-weight:900;color:#fff;
+  box-shadow:0 4px 12px rgba(26,111,196,.4);
+  flex-shrink:0;
+}
+.hdr-title{
+  font-size:26px;font-weight:900;
+  color:#fff;letter-spacing:-0.5px;
+}
+.hdr-sub{font-size:13px;color:rgba(255,255,255,.55);margin-top:3px;font-weight:400}
+.hdr-right{display:flex;align-items:center;gap:24px}
+.hdr-date{
+  text-align:right;
+  font-family:'Roboto Mono',monospace;
+}
+.hdr-date-d{font-size:28px;font-weight:700;color:#60a5fa;letter-spacing:1px}
+.hdr-date-t{font-size:14px;color:rgba(255,255,255,.5);margin-top:2px}
+
+/* ── 상단 집계 카드 ── */
+.summary{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:16px;
+  padding:18px 32px;
+  flex-shrink:0;
+}
+.sum-card{
+  background:linear-gradient(135deg,#111e30,#0d1e38);
+  border:1px solid #1e3550;
+  border-radius:12px;
+  padding:16px 20px;
+  display:flex;align-items:center;gap:14px;
+  box-shadow:0 4px 16px rgba(0,0,0,.3);
+  transition:transform .2s;
+}
+.sum-icon{
+  width:48px;height:48px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;flex-shrink:0;
+}
+.sum-info{flex:1}
+.sum-lbl{font-size:11px;color:rgba(255,255,255,.45);letter-spacing:.5px;font-weight:500;margin-bottom:3px}
+.sum-val{font-size:32px;font-weight:900;line-height:1;font-family:'Roboto Mono',monospace}
+.sum-unit{font-size:14px;font-weight:400;margin-left:2px}
+.sum-total .sum-icon{background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3)}
+.sum-total .sum-val{color:#60a5fa}
+.sum-work  .sum-icon{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3)}
+.sum-work  .sum-val{color:#4ade80}
+.sum-off   .sum-icon{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3)}
+.sum-off   .sum-val{color:#f87171}
+.sum-abs   .sum-icon{background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.3)}
+.sum-abs   .sum-val{color:#c084fc}
+
+/* ── 현장별 카드 ── */
+.sites{
+  flex:1;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+  gap:16px;
+  padding:0 32px 24px;
+  overflow:hidden;
+}
+.site-card{
+  background:linear-gradient(160deg,#0f1e30,#0a1628);
+  border:1px solid #1e3550;
+  border-radius:14px;
+  padding:20px 24px;
+  display:flex;flex-direction:column;gap:14px;
+  box-shadow:0 8px 24px rgba(0,0,0,.35);
+  position:relative;
+  overflow:hidden;
+}
+.site-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,#1a6fc4,#3d9bdc);
+}
+.site-hdr{display:flex;align-items:center;justify-content:space-between}
+.site-name{font-size:18px;font-weight:700;color:#fff}
+.site-total{
+  background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);
+  color:#60a5fa;padding:3px 10px;border-radius:20px;
+  font-size:12px;font-weight:700;font-family:'Roboto Mono',monospace;
+}
+/* 근무 현황 바 */
+.stat-bar{display:flex;height:10px;border-radius:5px;overflow:hidden;gap:1px}
+.bar-work{background:#22c55e;transition:flex .8s ease}
+.bar-off {background:#ef4444;transition:flex .8s ease}
+.bar-abs {background:#a855f7;transition:flex .8s ease}
+.bar-pre {background:#334155;flex:1}
+/* 수치 */
+.stat-nums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat-num{
+  background:rgba(255,255,255,.04);border-radius:8px;
+  padding:10px 12px;text-align:center;
+}
+.stat-num-lbl{font-size:10px;color:rgba(255,255,255,.4);letter-spacing:.5px;margin-bottom:4px}
+.stat-num-val{font-size:24px;font-weight:900;font-family:'Roboto Mono',monospace;line-height:1}
+.stat-num-work .stat-num-val{color:#4ade80}
+.stat-num-off  .stat-num-val{color:#f87171}
+.stat-num-abs  .stat-num-val{color:#c084fc}
+/* 직원 목록 */
+.emp-list{display:flex;flex-wrap:wrap;gap:5px}
+.emp-chip{
+  padding:4px 8px;border-radius:6px;font-size:11px;font-weight:500;
+  display:flex;align-items:center;gap:4px;
+}
+.chip-work{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.2)}
+.chip-off {background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+.chip-abs {background:rgba(168,85,247,.12);color:#c084fc;border:1px solid rgba(168,85,247,.2)}
+.chip-pre {background:rgba(255,255,255,.05);color:#475569;border:1px solid rgba(255,255,255,.08)}
+
+/* ── 하단 상태바 ── */
+.footer{
+  background:#060e1a;border-top:1px solid #1e3550;
+  padding:10px 32px;display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;height:44px;
+}
+.footer-left{font-size:11px;color:rgba(255,255,255,.3)}
+.sync-dot{
+  width:8px;height:8px;border-radius:50%;background:#22c55e;
+  display:inline-block;margin-right:6px;
+  animation:blink 2s ease-in-out infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.footer-right{font-size:11px;color:rgba(255,255,255,.25);font-family:'Roboto Mono',monospace}
+
+/* ── 로딩 ── */
+.loading{
+  position:fixed;inset:0;background:#0a1628;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:999;gap:16px;transition:opacity .5s;
+}
+.loading.hidden{opacity:0;pointer-events:none}
+.loading-spinner{
+  width:48px;height:48px;border:3px solid #1e3550;
+  border-top-color:#1a6fc4;border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{color:rgba(255,255,255,.4);font-size:14px}
+</style>
+</head>
+<body>
+
+<!-- 로딩 -->
+<div class="loading" id="loadingScreen">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">데이터 불러오는 중...</div>
+</div>
+
+<!-- 헤더 -->
+<div class="hdr">
+  <div class="hdr-left">
+    <div class="hdr-logo">IPC</div>
+    <div>
+      <div class="hdr-title">천안 IPC 통합현장 근무현황</div>
+      <div class="hdr-sub">HDC현대산업개발 · 천안 아이파크시티</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-date">
+      <div class="hdr-date-d" id="dispDate">--월 --일</div>
+      <div class="hdr-date-t" id="dispTime">----</div>
+    </div>
+  </div>
+</div>
+
+<!-- 전체 집계 -->
+<div class="summary">
+  <div class="sum-card sum-total">
+    <div class="sum-icon">👥</div>
+    <div class="sum-info">
+      <div class="sum-lbl">전체 총원</div>
+      <div class="sum-val" id="allTotal">--<span class="sum-unit">명</span></div>
+    </div>
+  </div>
+  <div class="sum-card sum-work">
+    <div class="sum-icon">✅</div>
+    <div class="sum-info">
+      <div class="sum-lbl">근무 인원</div>
+      <div class="sum-val" id="allWork">--<span class="sum-unit">명</span></div>
+    </div>
+  </div>
+  <div class="sum-card sum-off">
+    <div class="sum-icon">🏖</div>
+    <div class="sum-info">
+      <div class="sum-lbl">휴무 인원</div>
+      <div class="sum-val" id="allOff">--<span class="sum-unit">명</span></div>
+    </div>
+  </div>
+  <div class="sum-card sum-abs">
+    <div class="sum-icon">📋</div>
+    <div class="sum-info">
+      <div class="sum-lbl">현장미근무</div>
+      <div class="sum-val" id="allAbs">--<span class="sum-unit">명</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 현장별 카드 -->
+<div class="sites" id="sitesGrid"></div>
+
+<!-- 하단 상태바 -->
+<div class="footer">
+  <div class="footer-left">
+    <span class="sync-dot"></span>
+    실시간 Firebase 연동 · 자동 갱신 30초
+  </div>
+  <div class="footer-right" id="lastUpdate">--:--:-- 기준</div>
+</div>
+
+<script>
+// ── Firebase 설정 ──────────────────────────────────────────
+const FB_CONFIG = {
+  apiKey:            "AIzaSyB57PgBcbvN58iar6ZEvRMXOc_xSagQR68",
+  authDomain:        "workingday-efcd6.firebaseapp.com",
+  databaseURL:       "https://workingday-efcd6-default-rtdb.firebaseio.com",
+  projectId:         "workingday-efcd6",
+  storageBucket:     "workingday-efcd6.firebasestorage.app",
+  messagingSenderId: "665757328084",
+  appId:             "1:665757328084:web:95a745423e01082c3ad141"
+};
+const DB_PATH = 'hdr_v1';
+
+// ── 집계 기준일: 오늘 날짜 자동 (VXT 배포 시 실시간) ─────
+function getTodayKey(){
+  const d=new Date();
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,'0');
+  const day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function getYmKey(){
+  const d=new Date();
+  return String(d.getFullYear())+String(d.getMonth()+1).padStart(2,'0');
+}
+
+// ── 시계 ──────────────────────────────────────────────────
+function updateClock(){
+  const d=new Date();
+  const WD=['일','월','화','수','목','금','토'];
+  const dateStr=`${d.getMonth()+1}월 ${d.getDate()}일 (${WD[d.getDay()]})`;
+  const timeStr=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+  document.getElementById('dispDate').textContent=dateStr;
+  document.getElementById('dispTime').textContent=timeStr;
+}
+setInterval(updateClock,1000);
+updateClock();
+
+// ── 데이터 처리 ───────────────────────────────────────────
+function toArr(v){
+  if(!v) return [];
+  if(Array.isArray(v)) return v;
+  return Object.keys(v).sort((a,b)=>+a - +b).map(k=>v[k]);
+}
+
+function calcSite(site, data){
+  const sid    = site.id;
+  const refDate= getTodayKey();
+  const ym     = getYmKey();
+
+  // 직원 목록 (스냅샷 우선)
+  const snaps  = data.empSnaps && data.empSnaps[sid] ? data.empSnaps[sid] : {};
+  let emps = snaps[ym] ? toArr(snaps[ym]) : toArr(data.employees && data.employees[sid]);
+
+  const offs   = (data.offDays  && data.offDays[sid])  || {};
+  const abss   = (data.absDays  && data.absDays[sid])  || {};
+
+  const result = { name:site.dispLabel, full:site.fullName, total:0, work:0, off:0, abs:0, emps:[] };
+
+  emps.forEach(emp=>{
+    const jd = emp.joinDate || '2026-04-01';
+    if(refDate < jd) return;          // 발령 전 제외
+    result.total++;
+    const eid = String(+emp.id);
+    const hasOff = (offs[eid]&&offs[eid][refDate]);
+    const hasAbs = (abss[eid]&&abss[eid][refDate]);
+    const dept = emp.dept ? `[${emp.dept}]` : '';
+    if(hasOff){
+      result.off++;
+      result.emps.push({name:emp.name, dept, state:'off', abs:''});
+    } else if(hasAbs){
+      result.abs++;
+      result.emps.push({name:emp.name, dept, state:'abs', abs:hasAbs});
+    } else {
+      result.work++;
+      result.emps.push({name:emp.name, dept, state:'work', abs:''});
+    }
+  });
+  return result;
+}
+
+function renderSites(sites, data){
+  const grid = document.getElementById('sitesGrid');
+  let totTotal=0, totWork=0, totOff=0, totAbs=0;
+  const cards = [];
+
+  sites.forEach(site=>{
+    const r = calcSite(site, data);
+    totTotal += r.total; totWork += r.work; totOff += r.off; totAbs += r.abs;
+
+    const workPct = r.total ? (r.work/r.total*100).toFixed(1) : 0;
+    const offPct  = r.total ? (r.off /r.total*100).toFixed(1) : 0;
+    const absPct  = r.total ? (r.abs /r.total*100).toFixed(1) : 0;
+
+    const empHtml = r.emps.map(e=>{
+      const cls = e.state==='work'?'chip-work': e.state==='off'?'chip-off':'chip-abs';
+      const icon = e.state==='work'?'●': e.state==='off'?'휴': (e.abs||'미');
+      return `<span class="emp-chip ${cls}"><span>${icon}</span>${e.name}</span>`;
+    }).join('');
+
+    cards.push(`
+      <div class="site-card">
+        <div class="site-hdr">
+          <div class="site-name">${r.name}</div>
+          <div class="site-total">총 ${r.total}명</div>
+        </div>
+        <div class="stat-bar">
+          <div class="bar-work" style="flex:${r.work}"></div>
+          <div class="bar-off"  style="flex:${r.off}"></div>
+          <div class="bar-abs"  style="flex:${r.abs}"></div>
+          ${r.total===0?'<div class="bar-pre"></div>':''}
+        </div>
+        <div class="stat-nums">
+          <div class="stat-num stat-num-work">
+            <div class="stat-num-lbl">근&nbsp;&nbsp;무</div>
+            <div class="stat-num-val">${r.work}</div>
+          </div>
+          <div class="stat-num stat-num-off">
+            <div class="stat-num-lbl">휴&nbsp;&nbsp;무</div>
+            <div class="stat-num-val">${r.off}</div>
+          </div>
+          <div class="stat-num stat-num-abs">
+            <div class="stat-num-lbl">미근무</div>
+            <div class="stat-num-val">${r.abs}</div>
+          </div>
+        </div>
+        <div class="emp-list">${empHtml || '<span style="color:#334155;font-size:12px">등록된 직원 없음</span>'}</div>
+      </div>`);
+  });
+
+  grid.innerHTML = cards.join('');
+
+  // 전체 집계
+  document.getElementById('allTotal').innerHTML = `${totTotal}<span class="sum-unit">명</span>`;
+  document.getElementById('allWork').innerHTML  = `${totWork}<span class="sum-unit">명</span>`;
+  document.getElementById('allOff').innerHTML   = `${totOff}<span class="sum-unit">명</span>`;
+  document.getElementById('allAbs').innerHTML   = `${totAbs}<span class="sum-unit">명</span>`;
+
+  // 마지막 업데이트
+  const now = new Date();
+  document.getElementById('lastUpdate').textContent =
+    `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')} 기준`;
+}
+
+// ── Firebase 연결 ─────────────────────────────────────────
+async function init(){
+  try{
+    if(!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
+    const db = firebase.database().ref(DB_PATH);
+
+    db.on('value', snap=>{
+      const data = snap.val();
+      if(!data) return;
+
+      const sites = Array.isArray(data.sites)
+        ? data.sites
+        : Object.keys(data.sites||{}).sort((a,b)=>+a-+b).map(k=>data.sites[k]);
+
+      renderSites(sites, data);
+
+      // 로딩 화면 제거
+      const ls = document.getElementById('loadingScreen');
+      ls.classList.add('hidden');
+      setTimeout(()=>ls.remove(), 600);
+    });
+  }catch(e){
+    console.error('Firebase 오류:', e);
+    document.querySelector('.loading-text').textContent = '연결 실패: '+e.message;
+  }
+}
+
+// firebase SDK 준비 대기
+(async()=>{
+  for(let i=0;i<50;i++){
+    if(window.firebase && window.firebase.database) break;
+    await new Promise(r=>setTimeout(r,100));
+  }
+  await init();
+})();
+</script>
+</body>
+</html>
