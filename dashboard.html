@@ -49,11 +49,37 @@ body{
 .hdr-sub{font-size:13px;color:rgba(255,255,255,.55);margin-top:3px;font-weight:400}
 .hdr-right{display:flex;align-items:center;gap:24px}
 .hdr-date{
-  text-align:right;
+  display:flex;align-items:center;gap:14px;
   font-family:'Roboto Mono',monospace;
 }
+.hdr-date-clock{text-align:right}
 .hdr-date-d{font-size:22px;font-weight:700;color:#60a5fa;letter-spacing:1px}
 .hdr-date-t{font-size:14px;color:rgba(255,255,255,.5);margin-top:2px}
+/* 날짜 선택 박스 */
+.date-picker-wrap{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:10px;padding:6px 12px;
+}
+.date-picker-lbl{font-size:10px;color:rgba(255,255,255,.45);letter-spacing:.5px;margin-bottom:2px;display:block}
+.date-picker-inp{
+  background:transparent;border:none;outline:none;
+  color:#93c5fd;font-size:14px;font-weight:700;
+  font-family:'Roboto Mono',monospace;cursor:pointer;
+  width:110px;
+}
+.date-picker-inp::-webkit-calendar-picker-indicator{
+  filter:invert(.6) brightness(1.5);cursor:pointer;
+}
+.date-today-btn{
+  background:rgba(26,111,196,.3);border:1px solid rgba(100,180,255,.35);
+  color:#93c5fd;font-size:11px;font-weight:700;
+  padding:4px 9px;border-radius:6px;cursor:pointer;
+  font-family:'Noto Sans KR',sans-serif;white-space:nowrap;
+  transition:all .15s;
+}
+.date-today-btn:hover{background:rgba(26,111,196,.55);color:#fff}
 
 /* ── 상단 집계 카드 ── */
 .summary{
@@ -197,8 +223,19 @@ body{
   </div>
   <div class="hdr-right">
     <div class="hdr-date">
-      <div class="hdr-date-d" id="dispDate">--월 --일</div>
-      <div class="hdr-date-t" id="dispTime">----</div>
+      <!-- 날짜 선택 -->
+      <div class="date-picker-wrap">
+        <div>
+          <span class="date-picker-lbl">📅 기준일</span>
+          <input type="date" class="date-picker-inp" id="refDateInp">
+        </div>
+        <button class="date-today-btn" id="btnToday">오늘</button>
+      </div>
+      <!-- 시계 -->
+      <div class="hdr-date-clock">
+        <div class="hdr-date-d" id="dispDate">--월 --일</div>
+        <div class="hdr-date-t" id="dispTime">----</div>
+      </div>
     </div>
   </div>
 </div>
@@ -260,17 +297,22 @@ const FB_CONFIG = {
 };
 const DB_PATH = 'hdr_v1';
 
-// ── 집계 기준일: 오늘 날짜 자동 (VXT 배포 시 실시간) ─────
-function getTodayKey(){
+// ── 집계 기준일: 날짜 선택 또는 오늘 ────────────────────
+function todayStr(){
   const d=new Date();
-  const y=d.getFullYear();
-  const m=String(d.getMonth()+1).padStart(2,'0');
-  const day=String(d.getDate()).padStart(2,'0');
-  return `${y}-${m}-${day}`;
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
-function getYmKey(){
-  const d=new Date();
-  return String(d.getFullYear())+String(d.getMonth()+1).padStart(2,'0');
+function getRefKey(){
+  const inp=document.getElementById('refDateInp');
+  return (inp&&inp.value) ? inp.value : todayStr();
+}
+function getYmKey(dateKey){
+  const d=dateKey||getRefKey();
+  return d.slice(0,4)+d.slice(5,7);
+}
+function initDatePicker(){
+  const inp=document.getElementById('refDateInp');
+  if(inp) inp.value=todayStr();
 }
 
 // ── 시계 ──────────────────────────────────────────────────
@@ -294,8 +336,8 @@ function toArr(v){
 
 function calcSite(site, data){
   const sid    = site.id;
-  const refDate= getTodayKey();
-  const ym     = getYmKey();
+  const refDate= getRefKey();
+  const ym     = getYmKey(refDate);
 
   // 직원 목록 (스냅샷 우선)
   const snaps  = data.empSnaps && data.empSnaps[sid] ? data.empSnaps[sid] : {};
@@ -387,8 +429,11 @@ function renderSites(sites, data){
 
   // 마지막 업데이트
   const now = new Date();
+  const ref=getRefKey();
+  const isTd=(ref===todayStr());
   document.getElementById('lastUpdate').textContent =
-    `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')} 기준`;
+    (isTd?'오늘':'기준: '+ref)+' · '+
+    `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')} 갱신`;
 }
 
 // ── Firebase 연결 ─────────────────────────────────────────
@@ -424,6 +469,27 @@ async function init(){
     if(window.firebase && window.firebase.database) break;
     await new Promise(r=>setTimeout(r,100));
   }
+  initDatePicker();
+
+  // 날짜 변경 → 즉시 재집계
+  const inp=document.getElementById('refDateInp');
+  if(inp) inp.addEventListener('change',()=>{
+    // 현재 Firebase 데이터로 재렌더
+    const db=firebase.apps.length?firebase.database().ref('hdr_v1'):null;
+    if(db) db.once('value').then(snap=>{
+      const data=snap.val(); if(!data) return;
+      const sites=Array.isArray(data.sites)?data.sites:Object.values(data.sites||{});
+      renderSites(sites,data);
+    });
+  });
+
+  // 오늘 버튼
+  const btn=document.getElementById('btnToday');
+  if(btn) btn.addEventListener('click',()=>{
+    if(inp) inp.value=todayStr();
+    inp.dispatchEvent(new Event('change'));
+  });
+
   await init();
 })();
 </script>
