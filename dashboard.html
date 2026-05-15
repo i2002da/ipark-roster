@@ -56,6 +56,18 @@ body{
 .hdr-date-d{font-size:22px;font-weight:700;color:#60a5fa;letter-spacing:1px}
 .hdr-date-t{font-size:14px;color:rgba(255,255,255,.5);margin-top:2px}
 /* 날짜 선택 박스 */
+.btn-roster{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 14px;border-radius:8px;
+  background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.25);
+  color:rgba(255,255,255,.85);
+  font-size:13px;font-weight:600;
+  font-family:'Noto Sans KR',sans-serif;
+  text-decoration:none;white-space:nowrap;
+  transition:all .15s;flex-shrink:0;
+}
+.btn-roster:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.5);color:#fff}
 .date-picker-wrap{
   display:flex;align-items:center;gap:8px;
   background:rgba(255,255,255,.07);
@@ -236,6 +248,9 @@ body{
     </div>
   </div>
   <div class="hdr-right">
+    <a class="btn-roster" href="https://i2002da.github.io/ipark-roster/" target="_blank" rel="noopener" title="휴무계획표 열기">
+      📋 휴무계획표
+    </a>
     <div class="hdr-date">
       <!-- 날짜 선택 -->
       <div class="date-picker-wrap">
