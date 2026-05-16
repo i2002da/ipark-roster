@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IPC 현장 근무현황</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Roboto+Mono:wght@400;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100vh;overflow:hidden;background:#0a1628;color:#e8f4ff;font-family:'Noto Sans KR',sans-serif}
+body{display:flex;flex-direction:column}
+
+/* ── 헤더 ── */
+.hdr{
+  height:80px;flex-shrink:0;
+  background:linear-gradient(135deg,#0a2342,#0d2e56);
+  border-bottom:3px solid #1a6fc4;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 36px;
+  box-shadow:0 4px 20px rgba(0,0,0,.5);
+}
+.hdr-left{display:flex;align-items:center;gap:16px}
+.hdr-badge{
+  background:linear-gradient(135deg,#1a6fc4,#3d9bdc);
+  color:#fff;font-size:13px;font-weight:900;
+  padding:6px 14px;border-radius:8px;letter-spacing:1px;
+  flex-shrink:0;
+}
+.hdr-site{font-size:26px;font-weight:900;color:#fff;letter-spacing:-0.5px}
+.hdr-full{font-size:12px;color:rgba(255,255,255,.5);margin-top:3px}
+.hdr-right{display:flex;align-items:center;gap:20px;flex-shrink:0}
+.hdr-clock{text-align:right;font-family:'Roboto Mono',monospace}
+.hdr-date{font-size:20px;font-weight:700;color:#60a5fa}
+.hdr-time{font-size:13px;color:rgba(255,255,255,.45);margin-top:2px}
+.hdr-link{
+  color:rgba(255,255,255,.6);font-size:11px;text-decoration:none;
+  border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:5px 10px;
+  transition:all .15s;
+}
+.hdr-link:hover{background:rgba(255,255,255,.1);color:#fff}
+
+/* ── 집계 바 ── */
+.stat-bar{
+  flex-shrink:0;
+  display:flex;gap:0;
+  background:#060f1e;border-bottom:1px solid #1e3550;
+  padding:0 36px;height:68px;
+}
+.stat-item{
+  display:flex;align-items:center;gap:14px;
+  padding:0 28px;border-right:1px solid #1e3550;
+}
+.stat-item:first-child{padding-left:0}
+.stat-item:last-child{border-right:none}
+.stat-icon{font-size:22px;width:36px;text-align:center;flex-shrink:0}
+.stat-info{}
+.stat-lbl{font-size:10px;color:rgba(255,255,255,.4);letter-spacing:.8px;font-weight:500}
+.stat-val{font-size:28px;font-weight:900;font-family:'Roboto Mono',monospace;line-height:1}
+.v-tot{color:#60a5fa}
+.v-work{color:#4ade80}
+.v-off{color:#f87171}
+.v-abs{color:#c084fc}
+/* 게이지 */
+.stat-gauge{flex:1;display:flex;align-items:center;gap:10px;padding:0 28px}
+.gauge-track{flex:1;height:12px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden;display:flex;gap:1px}
+.gauge-work{background:#22c55e;transition:flex .6s}
+.gauge-off{background:#ef4444;transition:flex .6s}
+.gauge-abs{background:#a855f7;transition:flex .6s}
+.gauge-legend{display:flex;gap:14px;flex-shrink:0}
+.g-leg{display:flex;align-items:center;gap:5px;font-size:11px;color:rgba(255,255,255,.5)}
+.g-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* ── 직원 그리드 ── */
+.emp-grid{
+  flex:1;
+  display:grid;
+  gap:10px;
+  padding:16px 36px 20px;
+  overflow:hidden;
+  align-content:start;
+}
+.emp-card{
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:10px;
+  padding:12px 16px;
+  display:flex;align-items:center;gap:12px;
+  transition:border-color .2s;
+}
+.emp-card.s-work{border-left:4px solid #22c55e}
+.emp-card.s-off{border-left:4px solid #ef4444;background:rgba(239,68,68,.06)}
+.emp-card.s-abs{border-left:4px solid #a855f7;background:rgba(168,85,247,.06)}
+.emp-card.s-pre{border-left:4px solid #334155;opacity:.4}
+.emp-status{
+  width:36px;height:36px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:900;flex-shrink:0;
+}
+.emp-card.s-work .emp-status{background:rgba(34,197,94,.15);color:#4ade80}
+.emp-card.s-off  .emp-status{background:rgba(239,68,68,.15);color:#f87171}
+.emp-card.s-abs  .emp-status{background:rgba(168,85,247,.15);color:#c084fc}
+.emp-card.s-pre  .emp-status{background:rgba(255,255,255,.05);color:#334155}
+.emp-info{flex:1;min-width:0}
+.emp-name{font-size:clamp(13px,1.4vw,18px);font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.emp-dept{font-size:clamp(10px,0.9vw,13px);color:rgba(255,255,255,.4);margin-top:2px}
+.emp-state{font-size:clamp(10px,0.9vw,13px);font-weight:600;flex-shrink:0}
+.emp-card.s-work .emp-state{color:#4ade80}
+.emp-card.s-off  .emp-state{color:#f87171}
+.emp-card.s-abs  .emp-state{color:#c084fc}
+.emp-card.s-pre  .emp-state{color:#334155}
+
+/* ── 하단 ── */
+.footer{
+  flex-shrink:0;height:38px;
+  background:#060e1a;border-top:1px solid #1e3550;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 36px;font-size:11px;
+}
+.footer-left{color:rgba(255,255,255,.3);display:flex;align-items:center;gap:6px}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.footer-right{font-family:'Roboto Mono',monospace;color:rgba(255,255,255,.2);font-size:11px}
+
+/* ── 로딩 ── */
+.loading{position:fixed;inset:0;background:#0a1628;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:99;transition:opacity .5s}
+.loading.out{opacity:0;pointer-events:none}
+.spin{width:44px;height:44px;border:3px solid #1e3550;border-top-color:#1a6fc4;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-txt{color:rgba(255,255,255,.35);font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="loading" id="ld"><div class="spin"></div><div class="load-txt" id="ldtxt">연결 중...</div></div>
+
+<div class="hdr">
+  <div class="hdr-left">
+    <div class="hdr-badge">IPC</div>
+    <div>
+      <div class="hdr-site" id="siteName">현장명</div>
+      <div class="hdr-full" id="siteFull">-</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <a class="hdr-link" href="https://i2002da.github.io/ipark-roster/dashboard.html" target="_blank">📺 전체 대시보드</a>
+    <a class="hdr-link" id="linkRoster" href="https://i2002da.github.io/ipark-roster/" target="_blank">📋 휴무계획표</a>
+    <div class="hdr-clock">
+      <div class="hdr-date" id="hdrDate">-</div>
+      <div class="hdr-time" id="hdrTime">-</div>
+    </div>
+  </div>
+</div>
+
+<div class="stat-bar">
+  <div class="stat-item">
+    <div class="stat-icon">👥</div>
+    <div class="stat-info">
+      <div class="stat-lbl">총원</div>
+      <div class="stat-val v-tot" id="vTot">-</div>
+    </div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-icon">✅</div>
+    <div class="stat-info">
+      <div class="stat-lbl">근무</div>
+      <div class="stat-val v-work" id="vWork">-</div>
+    </div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-icon">🏖</div>
+    <div class="stat-info">
+      <div class="stat-lbl">휴무</div>
+      <div class="stat-val v-off" id="vOff">-</div>
+    </div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-icon">📋</div>
+    <div class="stat-info">
+      <div class="stat-lbl">현장미근무</div>
+      <div class="stat-val v-abs" id="vAbs">-</div>
+    </div>
+  </div>
+  <div class="stat-gauge">
+    <div class="gauge-track">
+      <div class="gauge-work" id="gWork" style="flex:0"></div>
+      <div class="gauge-off"  id="gOff"  style="flex:0"></div>
+      <div class="gauge-abs"  id="gAbs"  style="flex:0"></div>
+    </div>
+    <div class="gauge-legend">
+      <div class="g-leg"><div class="g-dot" style="background:#22c55e"></div>근무</div>
+      <div class="g-leg"><div class="g-dot" style="background:#ef4444"></div>휴무</div>
+      <div class="g-leg"><div class="g-dot" style="background:#a855f7"></div>미근무</div>
+    </div>
+  </div>
+</div>
+
+<div class="emp-grid" id="empGrid"></div>
+
+<div class="footer">
+  <div class="footer-left"><div class="sync-dot"></div>실시간 Firebase 연동</div>
+  <div class="footer-right" id="ftTime">-</div>
+</div>
+
+<script>
+const FB={
+  apiKey:"AIzaSyB57PgBcbvN58iar6ZEvRMXOc_xSagQR68",
+  authDomain:"workingday-efcd6.firebaseapp.com",
+  databaseURL:"https://workingday-efcd6-default-rtdb.firebaseio.com",
+  projectId:"workingday-efcd6",
+  storageBucket:"workingday-efcd6.firebasestorage.app",
+  messagingSenderId:"665757328084",
+  appId:"1:665757328084:web:95a745423e01082c3ad141"
+};
+const DB_PATH='hdr_v1';
+
+// URL에서 site ID 추출
+const SITE_ID = new URLSearchParams(location.search).get('site')||'';
+
+function todayKey(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function ymKey(){
+  const d=new Date();
+  return String(d.getFullYear())+String(d.getMonth()+1).padStart(2,'0');
+}
+function toArr(v){
+  if(!v) return [];
+  if(Array.isArray(v)) return v;
+  return Object.keys(v).sort((a,b)=>+a-+b).map(k=>v[k]);
+}
+
+// 시계
+function tick(){
+  const d=new Date();
+  const WD=['일','월','화','수','목','금','토'];
+  document.getElementById('hdrDate').textContent=
+    (d.getMonth()+1)+'월 '+d.getDate()+'일 ('+WD[d.getDay()]+')';
+  document.getElementById('hdrTime').textContent=
+    String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+}
+setInterval(tick,1000); tick();
+
+function render(data){
+  const sites=Array.isArray(data.sites)?data.sites:toArr(data.sites);
+  const site=SITE_ID?sites.find(s=>s.id===SITE_ID||s.label===SITE_ID):sites[0];
+  if(!site){document.getElementById('ldtxt').textContent='현장을 찾을 수 없습니다';return;}
+
+  const sid=site.id;
+  document.getElementById('siteName').textContent=site.dispLabel;
+  document.getElementById('siteFull').textContent=site.fullName||'';
+  document.getElementById('linkRoster').href=
+    'https://i2002da.github.io/ipark-roster/?site='+sid;
+
+  const ym=ymKey();
+  const refDate=todayKey();
+  const snaps=(data.empSnaps&&data.empSnaps[sid])||{};
+  let emps=snaps[ym]?toArr(snaps[ym]):toArr((data.employees||{})[sid]);
+  const offs=((data.offDays||{})[sid])||{};
+  const abss=((data.absDays||{})[sid])||{};
+
+  // 집계
+  let tot=0,work=0,off=0,abs=0;
+  const empCards=[];
+
+  emps.forEach(emp=>{
+    const jd=emp.joinDate||'2026-04-01';
+    if(refDate<jd){
+      empCards.push({emp,state:'pre',absType:''});
+      return;
+    }
+    tot++;
+    const eid=String(+emp.id);
+    const hasOff=(offs[eid]&&offs[eid][refDate]);
+    const hasAbs=(abss[eid]&&abss[eid][refDate]);
+    if(hasOff){off++;empCards.push({emp,state:'off',absType:'휴무'});}
+    else if(hasAbs){abs++;empCards.push({emp,state:'abs',absType:hasAbs});}
+    else{work++;empCards.push({emp,state:'work',absType:''});}
+  });
+
+  // 수치 표시
+  document.getElementById('vTot').textContent=tot;
+  document.getElementById('vWork').textContent=work;
+  document.getElementById('vOff').textContent=off;
+  document.getElementById('vAbs').textContent=abs;
+  document.getElementById('gWork').style.flex=work||0;
+  document.getElementById('gOff').style.flex=off||0;
+  document.getElementById('gAbs').style.flex=abs||0;
+
+  // 직원 카드 그리드 — 정렬: 근무 → 휴무 → 미근무 → 발령전
+  const order={work:0,off:1,abs:2,pre:3};
+  empCards.sort((a,b)=>order[a.state]-order[b.state]);
+
+  // 그리드 열 수: 직원 수에 따라 자동
+  const n=empCards.length;
+  const cols=n<=6?1:n<=12?2:n<=20?3:n<=30?4:5;
+  const grid=document.getElementById('empGrid');
+  grid.style.gridTemplateColumns=`repeat(${cols},1fr)`;
+
+  const stateLabel={work:'근무 중',off:'휴무',abs:'',pre:'발령 전'};
+  const stateIcon={work:'●',off:'휴',abs:'',pre:'-'};
+
+  grid.innerHTML=empCards.map(({emp,state,absType})=>{
+    const icon=state==='abs'?(absType||'미'):stateIcon[state];
+    const lbl=state==='abs'?absType:stateLabel[state];
+    return `<div class="emp-card s-${state}">
+      <div class="emp-status">${icon}</div>
+      <div class="emp-info">
+        <div class="emp-name">${emp.name}</div>
+        <div class="emp-dept">${emp.dept||'　'}</div>
+      </div>
+      <div class="emp-state">${lbl}</div>
+    </div>`;
+  }).join('');
+
+  // 하단 시각
+  const now=new Date();
+  document.getElementById('ftTime').textContent=
+    String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0')+' 갱신';
+
+  // 로딩 숨김
+  const ld=document.getElementById('ld');
+  if(ld&&!ld.classList.contains('out')){
+    ld.classList.add('out');
+    setTimeout(()=>ld.remove(),600);
+  }
+}
+
+(async()=>{
+  for(let i=0;i<50;i++){
+    if(window.firebase&&window.firebase.database) break;
+    await new Promise(r=>setTimeout(r,100));
+  }
+  try{
+    if(!firebase.apps.length) firebase.initializeApp(FB);
+    const db=firebase.database().ref(DB_PATH);
+    db.on('value',snap=>{
+      const d=snap.val();
+      if(d) render(d);
+    });
+  }catch(e){
+    document.getElementById('ldtxt').textContent='연결 실패: '+e.message;
+  }
+})();
+</script>
+</body>
+</html>
