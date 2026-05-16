@@ -1110,8 +1110,8 @@ async function loadState(){
 
 // ── 테마 ──
 // ── 버전 정보 (여기만 수정하면 화면에 즉시 반영) ──
-const APP_VERSION = 'v5.3';
-const APP_DATE    = '2026-05-15';
+const APP_VERSION = 'v5.4';
+const APP_DATE    = '2026-05-16';
 
 function applyVersion(){
   const vn=document.getElementById('verNum');
@@ -2392,6 +2392,19 @@ async function exportExcel(){
   applyTheme(S.theme);
   applyVersion();
   initStatDate();
+  // ── URL 파라미터로 현장·월 자동 선택 ──────────────────
+  // 예: ?site=site_1777681976623  또는  ?site=site1  또는  ?month=202607
+  const _urlP = new URLSearchParams(location.search);
+  const _siteParam = _urlP.get('site');
+  const _monthParam = _urlP.get('month');
+  if(_siteParam && SITES.find(x=>x.id===_siteParam||x.label===_siteParam)){
+    S.site = SITES.find(x=>x.id===_siteParam||x.label===_siteParam).id;
+  }
+  if(_monthParam && /^\d{6}$/.test(_monthParam)){
+    S.year  = +_monthParam.slice(0,4);
+    S.month = +_monthParam.slice(4,6);
+    clampToMin();
+  }
   buildTabs();
   renderTable();
   startPolling();
