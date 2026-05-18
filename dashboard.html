@@ -1,7 +1,14 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IPC 통합현장 근무현황</title>
 <style>
 /* 매직인포 호환: 외부 폰트 없음, var() 없음, clamp() 없음 */
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{width:100%;height:100vh;overflow:hidden;background:#f0f4f8;color:#0a2342;font-family:Arial,'Malgun Gothic','맑은 고딕',sans-serif}
+html,body{width:100%;height:100vh;overflow:hidden;background:#0a1628;color:#e8f4ff;font-family:Arial,'Malgun Gothic','맑은 고딕',sans-serif}
 body{display:flex;flex-direction:column}
 
 /* 헤더 */
@@ -9,71 +16,71 @@ body{display:flex;flex-direction:column}
 .hdr-left{display:flex;align-items:center;gap:14px}
 .hdr-logo{height:44px;object-fit:contain}
 .hdr-texts{display:flex;flex-direction:column;justify-content:center}
-.hdr-title{font-size:22px;font-weight:700;color:#ffffff}
-.hdr-sub{font-size:12px;color:#3d6b9a;margin-top:3px}
+.hdr-title{font-size:20px;font-weight:700;color:#fff}
+.hdr-sub{font-size:11px;color:rgba(255,255,255,.45);margin-top:2px}
 .hdr-right{display:flex;align-items:center;gap:18px;flex-shrink:0}
 .hdr-clock{text-align:right}
-.hdr-date{font-size:20px;font-weight:700;color:#1a6fc4;font-family:'Courier New',monospace}
-.hdr-time{font-size:13px;color:#3d6b9a;margin-top:3px;font-family:'Courier New',monospace}
+.hdr-date{font-size:18px;font-weight:700;color:#60a5fa;font-family:'Courier New',monospace}
+.hdr-time{font-size:12px;color:rgba(255,255,255,.4);margin-top:2px;font-family:'Courier New',monospace}
 
 /* 날짜 선택 */
-.date-wrap{display:flex;align-items:center;gap:8px;background:#e8eef5;border:1px solid #c2d4e8;border-radius:8px;padding:5px 12px}
-.date-lbl{font-size:10px;color:#3d6b9a;letter-spacing:.5px}
-.date-inp{background:transparent;border:none;outline:none;color:#93c5fd;font-size:14px;font-weight:700;font-family:'Courier New',monospace;cursor:pointer;width:108px}
+.date-wrap{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:5px 12px}
+.date-lbl{font-size:9px;color:rgba(255,255,255,.4);letter-spacing:.5px}
+.date-inp{background:transparent;border:none;outline:none;color:#93c5fd;font-size:13px;font-weight:700;font-family:'Courier New',monospace;cursor:pointer;width:108px}
 .date-inp::-webkit-calendar-picker-indicator{filter:invert(.6) brightness(1.5);cursor:pointer}
-.btn-today{background:rgba(26,111,196,.15);border:1px solid #c2d4e8;color:#93c5fd;font-size:12px;font-weight:700;padding:3px 8px;border-radius:5px;cursor:pointer}
+.btn-today{background:rgba(26,111,196,.3);border:1px solid rgba(100,180,255,.3);color:#93c5fd;font-size:11px;font-weight:700;padding:3px 8px;border-radius:5px;cursor:pointer}
 
 /* 집계 바 */
-.stat-bar{flex-shrink:0;height:56px;background:#e8eef5;border-bottom:1px solid #c2d4e8;display:flex;align-items:center;padding:0 28px;gap:0}
-.stat-item{display:flex;align-items:center;gap:10px;padding:0 20px;border-right:1px solid #c2d4e8}
+.stat-bar{flex-shrink:0;height:56px;background:#060f1e;border-bottom:1px solid #1e3550;display:flex;align-items:center;padding:0 28px;gap:0}
+.stat-item{display:flex;align-items:center;gap:10px;padding:0 20px;border-right:1px solid #1e3550}
 .stat-item:first-child{padding-left:0}
-.stat-lbl{font-size:11px;color:#7a9bbf;letter-spacing:.8px}
-.stat-val{font-size:26px;font-weight:700;font-family:'Courier New',monospace;line-height:1}
-.v-tot{color:#1a6fc4}.v-work{color:#1a7a40}.v-off{color:#c0392b}.v-abs{color:#6b21a8}
+.stat-lbl{font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.8px}
+.stat-val{font-size:24px;font-weight:700;font-family:'Courier New',monospace;line-height:1}
+.v-tot{color:#60a5fa}.v-work{color:#4ade80}.v-off{color:#f87171}.v-abs{color:#c084fc}
 .stat-gauge{flex:1;display:flex;align-items:center;gap:10px;padding:0 20px}
-.gauge-track{flex:1;height:10px;border-radius:5px;background:#e8eef5;overflow:hidden;display:flex}
+.gauge-track{flex:1;height:10px;border-radius:5px;background:rgba(255,255,255,.07);overflow:hidden;display:flex}
 .gauge-work{background:#22c55e}.gauge-off{background:#ef4444}.gauge-abs{background:#a855f7}
 .gauge-legend{display:flex;gap:12px;flex-shrink:0}
-.g-leg{display:flex;align-items:center;gap:4px;font-size:11px;color:#3d6b9a}
-.g-dot{width:10px;height:7px;border-radius:50%;flex-shrink:0}
+.g-leg{display:flex;align-items:center;gap:4px;font-size:10px;color:rgba(255,255,255,.38)}
+.g-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 
 /* 현장 그리드 */
 .sites{flex:1;display:grid;gap:12px;padding:14px 28px;overflow:hidden;align-items:start;min-height:0}
-.site-card{background:#fffffffff;border:1px solid #c2d4e8;border-radius:12px;padding:14px 18px;display:flex;flex-direction:column;gap:10px;position:relative;overflow:hidden}
+.site-card{background:#0f1e30;border:1px solid #1e3550;border-radius:12px;padding:14px 18px;display:flex;flex-direction:column;gap:10px;position:relative;overflow:hidden}
 .site-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:#1a6fc4}
 .site-hdr{display:flex;align-items:center;justify-content:space-between}
-.site-name{font-size:18px;font-weight:700;color:#ffffff}
-.site-total{background:#ddeeff;border:1px solid #b8d4f0;color:#1a6fc4;padding:3px 10px;border-radius:20px;font-size:13px;font-weight:700;font-family:'Courier New',monospace}
+.site-name{font-size:16px;font-weight:700;color:#fff}
+.site-total{background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:#60a5fa;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;font-family:'Courier New',monospace}
 .site-gauge{display:flex;height:7px;border-radius:4px;overflow:hidden}
 .sg-work{background:#22c55e}.sg-off{background:#ef4444}.sg-abs{background:#a855f7}
 .stat-nums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.stat-num{background:#f0f4f8;border-radius:10px;padding:10px 10px;text-align:center}
-.stat-num-lbl{font-size:11px;color:#7a9bbf;letter-spacing:.5px;margin-bottom:3px}
-.stat-num-val{font-size:22px;font-weight:700;font-family:'Courier New',monospace;line-height:1}
-.sn-work .stat-num-val{color:#1a7a40}.sn-off .stat-num-val{color:#c0392b}.sn-abs .stat-num-val{color:#6b21a8}
+.stat-num{background:rgba(255,255,255,.04);border-radius:7px;padding:7px 10px;text-align:center}
+.stat-num-lbl{font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.5px;margin-bottom:3px}
+.stat-num-val{font-size:20px;font-weight:700;font-family:'Courier New',monospace;line-height:1}
+.sn-work .stat-num-val{color:#4ade80}.sn-off .stat-num-val{color:#f87171}.sn-abs .stat-num-val{color:#c084fc}
 .emp-list{display:flex;flex-wrap:wrap;gap:6px}
-.emp-chip{padding:5px 11px;border-radius:10px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:4px}
-.chip-work{background:#d4edda;color:#1a7a40;border:1px solid rgba(34,197,94,.2)}
-.chip-off {background:#ffd5d5;color:#c0392b;border:1px solid rgba(239,68,68,.2)}
-.chip-abs {background:#e8d8ff;color:#6b21a8;border:1px solid rgba(168,85,247,.2)}
+.emp-chip{padding:5px 11px;border-radius:7px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:4px}
+.chip-work{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.2)}
+.chip-off {background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+.chip-abs {background:rgba(168,85,247,.12);color:#c084fc;border:1px solid rgba(168,85,247,.2)}
 
 /* 공지 마퀴 */
-.notice-bar{flex-shrink:0;height:64px;background:#ddeeff;border-top:1px solid #c2d4e8;display:none;align-items:center;overflow:hidden}
-.notice-prefix{flex-shrink:0;padding:0 20px;font-size:20px;font-weight:700;color:#1a6fc4;background:#0a2342;height:100%;display:flex;align-items:center;border-right:1px solid #c2d4e8;white-space:nowrap}
+.notice-bar{flex-shrink:0;height:64px;background:#0a1e38;border-top:1px solid #1e3550;display:none;align-items:center;overflow:hidden}
+.notice-prefix{flex-shrink:0;padding:0 20px;font-size:18px;font-weight:700;color:#60a5fa;background:#060e1e;height:100%;display:flex;align-items:center;border-right:1px solid #1e3550;white-space:nowrap}
 .notice-track{flex:1;overflow:hidden;position:relative;height:100%;display:flex;align-items:center}
-.notice-text{display:inline-block;white-space:nowrap;font-size:29px;color:#0a2342;font-weight:600;position:absolute;padding-left:100%}
+.notice-text{display:inline-block;white-space:nowrap;font-size:26px;color:rgba(255,255,255,.9);font-weight:600;position:absolute;padding-left:100%}
 
 /* 하단 */
-.footer{flex-shrink:0;height:36px;background:#dde8f2;border-top:1px solid #c2d4e8;display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-size:12px}
-.footer-l{color:#7a9bbf;display:flex;align-items:center;gap:6px}
-.sync-dot{width:10px;height:7px;border-radius:50%;background:#22c55e;display:inline-block}
-.footer-r{font-family:'Courier New',monospace;color:#aab8cc;font-size:11px}
+.footer{flex-shrink:0;height:36px;background:#060e1a;border-top:1px solid #1e3550;display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-size:11px}
+.footer-l{color:rgba(255,255,255,.28);display:flex;align-items:center;gap:6px}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block}
+.footer-r{font-family:'Courier New',monospace;color:rgba(255,255,255,.2);font-size:10px}
 
 /* 로딩 */
-.loading{position:fixed;inset:0;background:#f0f4f8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:99}
+.loading{position:fixed;inset:0;background:#0a1628;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:99}
 .loading.hide{display:none}
-.spin{width:42px;height:42px;border:3px solid #c2d4e8;border-top-color:#1a6fc4;border-radius:50%;animation:spin .8s linear infinite}
-.load-txt{color:#7a9bbf;font-size:14px}
+.spin{width:42px;height:42px;border:3px solid #1e3550;border-top-color:#1a6fc4;border-radius:50%;animation:spin .8s linear infinite}
+.load-txt{color:rgba(255,255,255,.35);font-size:13px}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
 @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
