@@ -511,25 +511,18 @@ function renderSites(sites, data){
 }
 
 function updateNoticeMarquee(sites, data){
+  // 대시보드 전용 공지: dashNotice[ymKey] 사용 (현장별 notices와 분리)
   const today=new Date();
   const ym=String(today.getFullYear())+String(today.getMonth()+1).padStart(2,'0');
-  const noticesData=data.notices||{};
-  const texts=[];
-  sites.forEach(s=>{
-    const nd=noticesData[s.id];
-    if(!nd) return;
-    const txt=typeof nd==='object'?(nd[ym]||''):nd;
-    if(txt&&txt.trim()) texts.push('['+s.dispLabel+'] '+txt.trim());
-  });
+  const dn=data.dashNotice||{};
+  const txt=(typeof dn==='object'?(dn[ym]||''):dn).trim();
   const bar=document.getElementById('noticeBar');
   const span=document.getElementById('noticeText');
   if(!bar||!span) return;
-  if(texts.length===0){bar.style.display='none';return;}
-  const combined=texts.join('          ');
-  span.textContent=combined;
+  if(!txt){bar.style.display='none';return;}
+  span.textContent=txt;
   bar.style.display='flex';
-  // 글자 수에 따라 속도 조절
-  const spd=Math.max(20, combined.length*0.25);
+  const spd=Math.max(20, txt.length*0.25);
   span.style.animation='none';
   void span.offsetWidth;
   span.style.animation='marquee '+spd+'s linear infinite';
