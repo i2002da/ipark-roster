@@ -1,10 +1,3 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>IPC 통합현장 근무현황</title>
 <style>
 /* 매직인포 호환: 외부 폰트 없음, var() 없음, clamp() 없음 */
 *{box-sizing:border-box;margin:0;padding:0}
@@ -12,75 +5,75 @@ html,body{width:100%;height:100vh;overflow:hidden;background:#0a1628;color:#e8f4
 body{display:flex;flex-direction:column}
 
 /* 헤더 */
-.hdr{height:72px;flex-shrink:0;background:#0a2342;border-bottom:3px solid #1a6fc4;display:flex;align-items:center;justify-content:space-between;padding:0 28px;box-shadow:0 4px 20px rgba(0,0,0,.5)}
-.hdr-left{display:flex;align-items:center;gap:14px}
-.hdr-logo{height:44px;object-fit:contain}
+.hdr{height:108px;flex-shrink:0;background:#0a2342;border-bottom:4px solid #1a6fc4;display:flex;align-items:center;justify-content:space-between;padding:0 42px;box-shadow:0 6px 30px rgba(0,0,0,.5)}
+.hdr-left{display:flex;align-items:center;gap:21px}
+.hdr-logo{height:66px;object-fit:contain}
 .hdr-texts{display:flex;flex-direction:column;justify-content:center}
-.hdr-title{font-size:20px;font-weight:700;color:#fff}
-.hdr-sub{font-size:11px;color:rgba(255,255,255,.45);margin-top:2px}
-.hdr-right{display:flex;align-items:center;gap:18px;flex-shrink:0}
+.hdr-title{font-size:30px;font-weight:700;color:#fff}
+.hdr-sub{font-size:16px;color:rgba(255,255,255,.45);margin-top:3px}
+.hdr-right{display:flex;align-items:center;gap:27px;flex-shrink:0}
 .hdr-clock{text-align:right}
-.hdr-date{font-size:18px;font-weight:700;color:#60a5fa;font-family:'Courier New',monospace}
-.hdr-time{font-size:12px;color:rgba(255,255,255,.4);margin-top:2px;font-family:'Courier New',monospace}
+.hdr-date{font-size:27px;font-weight:700;color:#60a5fa;font-family:'Courier New',monospace}
+.hdr-time{font-size:18px;color:rgba(255,255,255,.4);margin-top:3px;font-family:'Courier New',monospace}
 
 /* 날짜 선택 */
-.date-wrap{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:5px 12px}
-.date-lbl{font-size:9px;color:rgba(255,255,255,.4);letter-spacing:.5px}
-.date-inp{background:transparent;border:none;outline:none;color:#93c5fd;font-size:13px;font-weight:700;font-family:'Courier New',monospace;cursor:pointer;width:108px}
+.date-wrap{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:8px 18px}
+.date-lbl{font-size:14px;color:rgba(255,255,255,.4);letter-spacing:.8px}
+.date-inp{background:transparent;border:none;outline:none;color:#93c5fd;font-size:20px;font-weight:700;font-family:'Courier New',monospace;cursor:pointer;width:162px}
 .date-inp::-webkit-calendar-picker-indicator{filter:invert(.6) brightness(1.5);cursor:pointer}
-.btn-today{background:rgba(26,111,196,.3);border:1px solid rgba(100,180,255,.3);color:#93c5fd;font-size:11px;font-weight:700;padding:3px 8px;border-radius:5px;cursor:pointer}
+.btn-today{background:rgba(26,111,196,.3);border:1px solid rgba(100,180,255,.3);color:#93c5fd;font-size:16px;font-weight:700;padding:4px 12px;border-radius:8px;cursor:pointer}
 
 /* 집계 바 */
-.stat-bar{flex-shrink:0;height:56px;background:#060f1e;border-bottom:1px solid #1e3550;display:flex;align-items:center;padding:0 28px;gap:0}
-.stat-item{display:flex;align-items:center;gap:10px;padding:0 20px;border-right:1px solid #1e3550}
+.stat-bar{flex-shrink:0;height:84px;background:#060f1e;border-bottom:1px solid #1e3550;display:flex;align-items:center;padding:0 42px;gap:0}
+.stat-item{display:flex;align-items:center;gap:15px;padding:0 30px;border-right:1px solid #1e3550}
 .stat-item:first-child{padding-left:0}
-.stat-lbl{font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.8px}
-.stat-val{font-size:24px;font-weight:700;font-family:'Courier New',monospace;line-height:1}
+.stat-lbl{font-size:15px;color:rgba(255,255,255,.35);letter-spacing:.12px}
+.stat-val{font-size:36px;font-weight:700;font-family:'Courier New',monospace;line-height:1}
 .v-tot{color:#60a5fa}.v-work{color:#4ade80}.v-off{color:#f87171}.v-abs{color:#c084fc}
-.stat-gauge{flex:1;display:flex;align-items:center;gap:10px;padding:0 20px}
-.gauge-track{flex:1;height:10px;border-radius:5px;background:rgba(255,255,255,.07);overflow:hidden;display:flex}
+.stat-gauge{flex:1;display:flex;align-items:center;gap:15px;padding:0 30px}
+.gauge-track{flex:1;height:10px;border-radius:8px;background:rgba(255,255,255,.07);overflow:hidden;display:flex}
 .gauge-work{background:#22c55e}.gauge-off{background:#ef4444}.gauge-abs{background:#a855f7}
-.gauge-legend{display:flex;gap:12px;flex-shrink:0}
-.g-leg{display:flex;align-items:center;gap:4px;font-size:10px;color:rgba(255,255,255,.38)}
-.g-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.gauge-legend{display:flex;gap:18px;flex-shrink:0}
+.g-leg{display:flex;align-items:center;gap:6px;font-size:15px;color:rgba(255,255,255,.38)}
+.g-dot{width:10px;height:7px;border-radius:50%;flex-shrink:0}
 
 /* 현장 그리드 */
-.sites{flex:1;display:grid;gap:12px;padding:14px 28px;overflow:hidden;align-items:start;min-height:0}
-.site-card{background:#0f1e30;border:1px solid #1e3550;border-radius:12px;padding:14px 18px;display:flex;flex-direction:column;gap:10px;position:relative;overflow:hidden}
+.sites{flex:1;display:grid;gap:18px;padding:21px 42px;overflow:hidden;align-items:start;min-height:0}
+.site-card{background:#0f1e30;border:1px solid #1e3550;border-radius:18px;padding:21px 27px;display:flex;flex-direction:column;gap:15px;position:relative;overflow:hidden}
 .site-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:#1a6fc4}
 .site-hdr{display:flex;align-items:center;justify-content:space-between}
-.site-name{font-size:16px;font-weight:700;color:#fff}
-.site-total{background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:#60a5fa;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;font-family:'Courier New',monospace}
-.site-gauge{display:flex;height:7px;border-radius:4px;overflow:hidden}
+.site-name{font-size:24px;font-weight:700;color:#fff}
+.site-total{background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:#60a5fa;padding:3px 15px;border-radius:30px;font-size:18px;font-weight:700;font-family:'Courier New',monospace}
+.site-gauge{display:flex;height:7px;border-radius:6px;overflow:hidden}
 .sg-work{background:#22c55e}.sg-off{background:#ef4444}.sg-abs{background:#a855f7}
-.stat-nums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.stat-num{background:rgba(255,255,255,.04);border-radius:7px;padding:7px 10px;text-align:center}
-.stat-num-lbl{font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.5px;margin-bottom:3px}
-.stat-num-val{font-size:20px;font-weight:700;font-family:'Courier New',monospace;line-height:1}
+.stat-nums{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.stat-num{background:rgba(255,255,255,.04);border-radius:10px;padding:10px 15px;text-align:center}
+.stat-num-lbl{font-size:15px;color:rgba(255,255,255,.35);letter-spacing:.8px;margin-bottom:4px}
+.stat-num-val{font-size:30px;font-weight:700;font-family:'Courier New',monospace;line-height:1}
 .sn-work .stat-num-val{color:#4ade80}.sn-off .stat-num-val{color:#f87171}.sn-abs .stat-num-val{color:#c084fc}
-.emp-list{display:flex;flex-wrap:wrap;gap:6px}
-.emp-chip{padding:5px 11px;border-radius:7px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:4px}
+.emp-list{display:flex;flex-wrap:wrap;gap:9px}
+.emp-chip{padding:8px 16px;border-radius:10px;font-size:20px;font-weight:600;display:flex;align-items:center;gap:6px}
 .chip-work{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.2)}
 .chip-off {background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.2)}
 .chip-abs {background:rgba(168,85,247,.12);color:#c084fc;border:1px solid rgba(168,85,247,.2)}
 
 /* 공지 마퀴 */
-.notice-bar{flex-shrink:0;height:64px;background:#0a1e38;border-top:1px solid #1e3550;display:none;align-items:center;overflow:hidden}
-.notice-prefix{flex-shrink:0;padding:0 20px;font-size:18px;font-weight:700;color:#60a5fa;background:#060e1e;height:100%;display:flex;align-items:center;border-right:1px solid #1e3550;white-space:nowrap}
+.notice-bar{flex-shrink:0;height:96px;background:#0a1e38;border-top:1px solid #1e3550;display:none;align-items:center;overflow:hidden}
+.notice-prefix{flex-shrink:0;padding:0 30px;font-size:27px;font-weight:700;color:#60a5fa;background:#060e1e;height:100%;display:flex;align-items:center;border-right:1px solid #1e3550;white-space:nowrap}
 .notice-track{flex:1;overflow:hidden;position:relative;height:100%;display:flex;align-items:center}
-.notice-text{display:inline-block;white-space:nowrap;font-size:26px;color:rgba(255,255,255,.9);font-weight:600;position:absolute;padding-left:100%}
+.notice-text{display:inline-block;white-space:nowrap;font-size:39px;color:rgba(255,255,255,.9);font-weight:600;position:absolute;padding-left:100%}
 
 /* 하단 */
-.footer{flex-shrink:0;height:36px;background:#060e1a;border-top:1px solid #1e3550;display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-size:11px}
-.footer-l{color:rgba(255,255,255,.28);display:flex;align-items:center;gap:6px}
-.sync-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block}
-.footer-r{font-family:'Courier New',monospace;color:rgba(255,255,255,.2);font-size:10px}
+.footer{flex-shrink:0;height:54px;background:#060e1a;border-top:1px solid #1e3550;display:flex;align-items:center;justify-content:space-between;padding:0 42px;font-size:16px}
+.footer-l{color:rgba(255,255,255,.28);display:flex;align-items:center;gap:9px}
+.sync-dot{width:10px;height:7px;border-radius:50%;background:#22c55e;display:inline-block}
+.footer-r{font-family:'Courier New',monospace;color:rgba(255,255,255,.2);font-size:15px}
 
 /* 로딩 */
-.loading{position:fixed;inset:0;background:#0a1628;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:99}
+.loading{position:fixed;inset:0;background:#0a1628;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:21px;z-index:99}
 .loading.hide{display:none}
-.spin{width:42px;height:42px;border:3px solid #1e3550;border-top-color:#1a6fc4;border-radius:50%;animation:spin .8s linear infinite}
-.load-txt{color:rgba(255,255,255,.35);font-size:13px}
+.spin{width:63px;height:63px;border:3px solid #1e3550;border-top-color:#1a6fc4;border-radius:50%;animation:spin .8s linear infinite}
+.load-txt{color:rgba(255,255,255,.35);font-size:20px}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
 @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
@@ -92,7 +85,7 @@ body{display:flex;flex-direction:column}
 
 <div class="hdr">
   <div class="hdr-left">
-    <img class="hdr-logo" src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAAeAF8DASIAAhEBAxEB/8QAHAAAAwEAAgMAAAAAAAAAAAAABgcIBQMJAQIE/8QAPRAAAQMDAwIDBQQFDQAAAAAAAQIDBAUGEQAHEgghEyIxFBVBUWEJFjKUGCNVddMXJDM3OEJWYnGBsrPS/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AKy+6drf4ao35Fr/AM6iGDeNrbd9al1/eKlwDbk2UuA+FxULbicuCkOhOOwCkgHH91Sj3IA1e+urTqo/tDXr+8lf8U6DsrgW/ZdQhMzoNDoEqK+gOMvMxGVocSe4UlQGCD89TX9ohRaNTNsbedptJgQnF1oJUuPHQ2SPAcOCUgdtJPputXqDrMfx9tarU6JReZzKkyy1BKwe+EEKDhznJShWPQ63erS0d5qBZtIm7l39BuOC5PDUeNGSU+G74azz/o0A9goZ+ugFOjqxrV3E3SlW7d1NcnQvdTshsNyVslDiHGwDlBGRhShj663uknbSyb9uy86fdlIkT49Kjh6KlqU40pOHFJI8pGcjHr8vroc6Pr9tnbrdh24LrmORKeqlvRw42wt081LbIGEgn0Se+t7pP3RtLby7bzqlxVJ6G3UohRBW3HW4VL8RSh2SDj1HroNi5dsdt7n2Oue+7XtC6bHm2+UFLdUdU41MBIyBz7574yMYOPXOiOp9OVqK6fnFxIqmtzoNCZrMuMmU4pXBRUrgWiSMlKHEdh+NPyPdR2VuxWLovihRt3b6q8q0YkxMyZHcCnUPFvzoQptA8wKwkd/QEnTSt3q3Sd5nKpVbStmLb8p9cV6qMU5fvT2LJ8Lm5zPLHkUU8cdjgA40Ap0u2Bt/dW2V83Hd9rz63Kt3i+y3DmOtuPILaj4aUoIBOUHv/m+mvbePbGxP5CI26NpW9cVpPCpCG5TKs4V+Mg5HNPLzeoyDnBwoY9DrWsbdXb7bym7ww7PuKVGNaUl613GoTqSlRbcIR3T5OClhIKvXGdZO4e7ltbs9PsGlXrWZcG/KA6VxVBlxTFSATjK+AKUrUntk4wpOchKiADCu3pgtWdUqFcFKjyrfs1iie9K64285KfWrHPwmUq5KKuIPcDt8iSAZV3GqFq1K6pL9lUB6h0NICI0d+St51QGfOtSicKPyHYAAdzkmlLw6no1Iu/b2fZtWmT6LS6YmLXaappbTbxIQlXZQHJaQnKVfAj5EgozqCVt3K3Bk1fbOoqfo1RBkLiriuMmG8T50JCgAUH1GPTJHoASHapqAJ+3Te53XHcVvTOXutqoOTakUnBMdtKMpB+HJRQjPw5Z+GqN/SgsH9kXN+WY/jaQu1G79s0Lqiv285lPqzkCrx1pjoaabLyP1jR8wKwAPL8FH4aC5KZBh0ynR6dTorMSHGbS0wwygJQ2hIwEpA7AAamL7SL+qu3P32P8Aod0Z/pQWD+yLm/LMfxtIfrR3ftrcSw6NS6JBq8d6NVBIWqY02lJT4S04HFajnKh8NAoemW27ZuncpNNuinSKjFaiOTG40eUG3H1NYX4SEFCvGUsApDYKM5PmGNPusbH7YKqbqIdJmsIqFdozC4705pT0FuSt1TjXBCubK+KkJKHEeXwxxWvKuMnWLX12reVIuRuGzNXTJbclMd78DpQc8VfQ6KajuNBZhvCz7aetSc9MamKlQq3KUC40pSkKLalcCUlSuJIynJxjOgcFqbc2FWLC3KqSbS93SKIua1TxMmOuOEtQJSkqSrCQcuNpcwoYHAjJ9D8lhbN2w7XdvaXUHbfn1hiY4m8qYircnkodX/NhgLwopHlWGu6SRnPqF5Rt9r0j2tXKFW5L1xGrtPNKmVKW66+ylyM8xxQpSjhIEhagnGM/6nXHG3TpCoFuJqljMzKlb9ORT4dQZrEqK6G0rcWD+qUADlxXcd++gPqRaGyTNkyZk+ZHlwWXp7FTq7i5LFQjSQFGIzEj8vCc5ADIWTnCySkAa8t2Ltu9uXU6ebblv2tBtmLVpFUTPLHsafYQ4StAKgpx10pHAL7EkDIGgba3eZ6xKJV6O3a8GpxKjUEzsSHlEtKSlSQkEg57KPc99ZG6u61w35U6g4pS6VS5/sxfpkZ5RYWphoNoUR2ycDPyzj5DQURdWzu1bN1UWiLpbbXviJVUxkQX5Hje1NtQVMoAwrK0+I8rHFScK75xgB29+2VgWVZdWluW5cNLQmq02LTZfs73J4qhLVIBU/xSUlxKiSkfiAAATkAMn79VCqXfbNwVi1qXKFCly5PsoWQ3IL7LTRCuYVjj4KSOx7k64t397F7gWa1bX3dRS2G56JoLbrHErShaBlLUdsk4cPqf9vkH/9k=" alt="IPC" style='height:44px;object-fit:contain'>
+    <img class="hdr-logo" src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAAeAF8DASIAAhEBAxEB/8QAHAAAAwEAAgMAAAAAAAAAAAAABgcIBQMJAQIE/8QAPRAAAQMDAwIDBQQFDQAAAAAAAQIDBAUGEQAHEgghEyIxFBVBUWEJFjKUGCNVddMXJDM3OEJWYnGBsrPS/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AKy+6drf4ao35Fr/AM6iGDeNrbd9al1/eKlwDbk2UuA+FxULbicuCkOhOOwCkgHH91Sj3IA1e+urTqo/tDXr+8lf8U6DsrgW/ZdQhMzoNDoEqK+gOMvMxGVocSe4UlQGCD89TX9ohRaNTNsbedptJgQnF1oJUuPHQ2SPAcOCUgdtJPputXqDrMfx9tarU6JReZzKkyy1BKwe+EEKDhznJShWPQ63erS0d5qBZtIm7l39BuOC5PDUeNGSU+G74azz/o0A9goZ+ugFOjqxrV3E3SlW7d1NcnQvdTshsNyVslDiHGwDlBGRhShj663uknbSyb9uy86fdlIkT49Kjh6KlqU40pOHFJI8pGcjHr8vroc6Pr9tnbrdh24LrmORKeqlvRw42wt081LbIGEgn0Se+t7pP3RtLby7bzqlxVJ6G3UohRBW3HW4VL8RSh2SDj1HroNi5dsdt7n2Oue+7XtC6bHm2+UFLdUdU41MBIyBz7574yMYOPXOiOp9OVqK6fnFxIqmtzoNCZrMuMmU4pXBRUrgWiSMlKHEdh+NPyPdR2VuxWLovihRt3b6q8q0YkxMyZHcCnUPFvzoQptA8wKwkd/QEnTSt3q3Sd5nKpVbStmLb8p9cV6qMU5fvT2LJ8Lm5zPLHkUU8cdjgA40Ap0u2Bt/dW2V83Hd9rz63Kt3i+y3DmOtuPILaj4aUoIBOUHv/m+mvbePbGxP5CI26NpW9cVpPCpCG5TKs4V+Mg5HNPLzeoyDnBwoY9DrWsbdXb7bym7ww7PuKVGNaUl613GoTqSlRbcIR3T5OClhIKvXGdZO4e7ltbs9PsGlXrWZcG/KA6VxVBlxTFSATjK+AKUrUntk4wpOchKiADCu3pgtWdUqFcFKjyrfs1iie9K64285KfWrHPwmUq5KKuIPcDt8iSAZV3GqFq1K6pL9lUB6h0NICI0d+St51QGfOtSicKPyHYAAdzkmlLw6no1Iu/b2fZtWmT6LS6YmLXaappbTbxIQlXZQHJaQnKVfAj5EgozqCVt3K3Bk1fbOoqfo1RBkLiriuMmG8T50JCgAUH1GPTJHoASHapqAJ+3Te53XHcVvTOXutqoOTakUnBMdtKMpB+HJRQjPw5Z+GqN/SgsH9kXN+WY/jaQu1G79s0Lqiv285lPqzkCrx1pjoaabLyP1jR8wKwAPL8FH4aC5KZBh0ynR6dTorMSHGbS0wwygJQ2hIwEpA7AAamL7SL+qu3P32P8Aod0Z/pQWD+yLm/LMfxtIfrR3ftrcSw6NS6JBq8d6NVBIWqY02lJT4S04HFajnKh8NAoemW27ZuncpNNuinSKjFaiOTG40eUG3H1NYX4SEFCvGUsApDYKM5PmGNPusbH7YKqbqIdJmsIqFdozC4705pT0FuSt1TjXBCubK+KkJKHEeXwxxWvKuMnWLX12reVIuRuGzNXTJbclMd78DpQc8VfQ6KajuNBZhvCz7aetSc9MamKlQq3KUC40pSkKLalcCUlSuJIynJxjOgcFqbc2FWLC3KqSbS93SKIua1TxMmOuOEtQJSkqSrCQcuNpcwoYHAjJ9D8lhbN2w7XdvaXUHbfn1hiY4m8qYircnkodX/NhgLwopHlWGu6SRnPqF5Rt9r0j2tXKFW5L1xGrtPNKmVKW66+ylyM8xxQpSjhIEhagnGM/6nXHG3TpCoFuJqljMzKlb9ORT4dQZrEqK6G0rcWD+qUADlxXcd++gPqRaGyTNkyZk+ZHlwWXp7FTq7i5LFQjSQFGIzEj8vCc5ADIWTnCySkAa8t2Ltu9uXU6ebblv2tBtmLVpFUTPLHsafYQ4StAKgpx10pHAL7EkDIGgba3eZ6xKJV6O3a8GpxKjUEzsSHlEtKSlSQkEg57KPc99ZG6u61w35U6g4pS6VS5/sxfpkZ5RYWphoNoUR2ycDPyzj5DQURdWzu1bN1UWiLpbbXviJVUxkQX5Hje1NtQVMoAwrK0+I8rHFScK75xgB29+2VgWVZdWluW5cNLQmq02LTZfs73J4qhLVIBU/xSUlxKiSkfiAAATkAMn79VCqXfbNwVi1qXKFCly5PsoWQ3IL7LTRCuYVjj4KSOx7k64t397F7gWa1bX3dRS2G56JoLbrHErShaBlLUdsk4cPqf9vkH/9k=" alt="IPC" style='height:66px;object-fit:contain'>
     <div class="hdr-texts">
       <div class="hdr-title">천안 IPC 통합현장 근무현황</div>
       <div class="hdr-sub">HDC현대산업개발 · 천안 아이파크시티</div>
