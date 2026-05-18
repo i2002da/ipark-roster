@@ -84,6 +84,15 @@ body{display:flex;flex-direction:column}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
 @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
+
+/* 글씨 크기 조절 */
+.font-ctrl{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:5px 12px;flex-shrink:0}
+.font-ctrl-lbl{font-size:11px;color:rgba(255,255,255,.4);letter-spacing:.5px;white-space:nowrap}
+.font-btn{width:28px;height:28px;border-radius:5px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:rgba(255,255,255,.85);font-size:16px;font-weight:700;cursor:pointer;line-height:1;text-align:center}
+.font-btn:hover{background:rgba(255,255,255,.22);color:#fff}
+.font-scale-lbl{font-size:13px;font-weight:700;color:#60a5fa;min-width:38px;text-align:center;font-family:'Courier New',monospace}
+.btn-roster{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:7px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);color:rgba(255,255,255,.8);font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;font-family:Arial,'Malgun Gothic',sans-serif}
+.btn-roster:hover{background:rgba(255,255,255,.22);color:#fff}
 </style>
 </head>
 <body>
@@ -99,6 +108,17 @@ body{display:flex;flex-direction:column}
     </div>
   </div>
   <div class="hdr-right">
+    <!-- 현장 휴무계획표 바로가기 -->
+    <a class="btn-roster" href="https://i2002da.github.io/ipark-roster/" target="_blank">&#128203; 휴무계획표</a>
+    <!-- 글씨 크기 조절 -->
+    <div class="font-ctrl">
+      <span class="font-ctrl-lbl">글씨</span>
+      <button class="font-btn" onclick="adjFont(-1)" title="글씨 작게">&#8722;</button>
+      <span class="font-scale-lbl" id="fontScaleLbl">100%</span>
+      <button class="font-btn" onclick="adjFont(1)" title="글씨 크게">&#43;</button>
+      <button class="font-btn" onclick="adjFont(0)" title="기본값" style="font-size:11px;width:34px">초기화</button>
+    </div>
+    <!-- 기준일 선택 -->
     <div class="date-wrap">
       <div><div class="date-lbl">기준일</div>
       <input type="date" class="date-inp" id="dateInp"></div>
@@ -311,8 +331,50 @@ function loadData(){
   xhr.send();
 }
 
+// ── 글씨 크기 조절 ─────────────────────────────────────
+// BASE_SIZES: 원본 px 값 배열 (CSS 내 font-size:Npx 값들)
+var _fontScale = 100;  // %
+var _fontStep  = 5;    // 5% 단위
+var _fontMin   = 70;
+var _fontMax   = 200;
+
+// CSS 텍스트에서 font-size 값을 파싱 → 동적으로 <style> 교체
+var _origStyle = null;
+
+function initFontCtrl(){
+  // 원본 스타일 저장 (최초 1회)
+  var styleEl = document.querySelector('style');
+  if(styleEl && !_origStyle) _origStyle = styleEl.textContent;
+  // localStorage에서 복원
+  try{
+    var saved = localStorage.getItem('dash_font_scale');
+    if(saved) _fontScale = +saved;
+  }catch(e){}
+  applyFontScale();
+}
+
+function adjFont(dir){
+  if(dir===0){ _fontScale=100; }
+  else{ _fontScale = Math.min(_fontMax, Math.max(_fontMin, _fontScale + dir*_fontStep)); }
+  applyFontScale();
+  try{ localStorage.setItem('dash_font_scale', _fontScale); }catch(e){}
+}
+
+function applyFontScale(){
+  var lbl = document.getElementById('fontScaleLbl');
+  if(lbl) lbl.textContent = _fontScale+'%';
+  if(!_origStyle) return;
+  var ratio = _fontScale / 100;
+  var newCss = _origStyle.replace(/font-size:([\d.]+)px/g, function(m,v){
+    return 'font-size:' + Math.round(+v * ratio) + 'px';
+  });
+  var styleEl = document.querySelector('style');
+  if(styleEl) styleEl.textContent = newCss;
+}
+
 // 초기 로드 + 30초 자동 갱신
 initDateInp();
+initFontCtrl();
 loadData();
 setInterval(loadData,30000);
 
