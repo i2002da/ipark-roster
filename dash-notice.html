@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IPC 대시보드 공지사항 입력</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:#f0f4f8;min-height:100vh}
+.hdr{background:linear-gradient(135deg,#0a2342,#1a3a5c);padding:0 28px;height:66px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 16px rgba(10,35,66,.2);position:sticky;top:0;z-index:10}
+.hdr-left{display:flex;align-items:center;gap:14px}
+.hdr-badge{background:#1a6fc4;color:#fff;font-size:12px;font-weight:900;padding:5px 12px;border-radius:7px;letter-spacing:1px}
+.hdr-title{font-size:18px;font-weight:900;color:#fff}
+.hdr-sub{font-size:11px;color:rgba(255,255,255,.5);margin-top:2px}
+.hdr-right{display:flex;gap:10px}
+.hdr-link{color:rgba(255,255,255,.6);font-size:11px;text-decoration:none;border:1px solid rgba(255,255,255,.2);border-radius:5px;padding:5px 10px;transition:all .15s}
+.hdr-link:hover{background:rgba(255,255,255,.12);color:#fff}
+
+/* 미리보기 마퀴 */
+.preview-bar{background:#0a2342;border-bottom:2px solid #1a6fc4;height:72px;display:flex;align-items:center;overflow:hidden}
+.preview-prefix{flex-shrink:0;padding:0 20px;font-size:18px;font-weight:700;color:#60a5fa;background:#060e1e;height:100%;display:flex;align-items:center;border-right:1px solid #1e3550;white-space:nowrap}
+.preview-track{flex:1;overflow:hidden;position:relative;height:100%;display:flex;align-items:center}
+.preview-text{display:inline-block;white-space:nowrap;font-size:26px;color:rgba(255,255,255,.9);font-weight:600;position:absolute;padding-left:100%;animation:marquee 30s linear infinite}
+.preview-empty{color:rgba(255,255,255,.2);font-size:14px;padding-left:24px}
+@keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
+
+/* 본문 */
+.content{max-width:780px;margin:0 auto;padding:32px 20px 60px}
+.guide{background:#f0f7ff;border:1px solid #c0d8f0;border-radius:10px;padding:14px 18px;margin-bottom:24px}
+.guide-title{font-size:12px;font-weight:700;color:#0a2342;margin-bottom:6px}
+.guide ul{padding-left:16px;font-size:12px;color:#3d6b9a;line-height:2.1}
+
+.card{background:#fff;border-radius:14px;border:1px solid #c2d4e8;overflow:hidden;box-shadow:0 2px 12px rgba(10,35,66,.07)}
+.card-hdr{background:linear-gradient(135deg,#0a2342,#1a3a5c);padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:16px;font-weight:900;color:#fff}
+.card-sub{font-size:11px;color:rgba(255,255,255,.5);margin-top:2px}
+.card-body{padding:24px}
+
+/* 월 선택 */
+.month-row{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.month-box{display:flex;align-items:center;gap:8px;background:#f0f4f8;border:1px solid #c2d4e8;border-radius:8px;padding:8px 16px}
+.month-box select{background:transparent;border:none;outline:none;font-size:15px;font-weight:700;color:#0a2342;font-family:'Noto Sans KR',sans-serif;cursor:pointer}
+.month-lbl{font-size:12px;color:#7a9bbf}
+
+/* 입력 영역 */
+.inp-lbl{font-size:12px;font-weight:700;color:#3d6b9a;margin-bottom:6px;display:flex;justify-content:space-between}
+.char-cnt{font-weight:400;color:#aab8cc}
+textarea{width:100%;padding:14px 16px;background:#f8faff;border:1px solid #c2d4e8;border-radius:10px;font-size:15px;color:#0a2342;font-family:'Noto Sans KR',sans-serif;resize:vertical;min-height:120px;outline:none;transition:border-color .15s;line-height:1.7}
+textarea:focus{border-color:#1a6fc4;background:#fff}
+textarea::placeholder{color:#aab8cc}
+
+/* 버튼 */
+.btn-row{display:flex;align-items:center;justify-content:space-between;margin-top:16px}
+.btn-save{background:linear-gradient(135deg,#0a2342,#1a6fc4);color:#fff;border:none;border-radius:9px;padding:12px 28px;font-size:14px;font-weight:700;font-family:'Noto Sans KR',sans-serif;cursor:pointer;transition:opacity .15s;display:flex;align-items:center;gap:8px}
+.btn-save:hover{opacity:.88}
+.btn-save:disabled{opacity:.5;cursor:default}
+.btn-del{background:transparent;color:#c0392b;border:1px solid #c0392b;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:600;font-family:'Noto Sans KR',sans-serif;cursor:pointer;transition:all .15s}
+.btn-del:hover{background:#fff0f0}
+.toast{display:none;align-items:center;gap:6px;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600}
+.toast.ok{display:flex;background:#d4edda;border:1px solid #86c99a;color:#1a5c30}
+.toast.err{display:flex;background:#ffd5d5;border:1px solid #c0392b;color:#8b1a1a}
+
+/* 이력 */
+.history-title{font-size:13px;font-weight:700;color:#0a2342;margin:24px 0 10px;padding-top:20px;border-top:1px solid #dde8f2}
+.history-list{display:flex;flex-direction:column;gap:8px}
+.history-item{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;background:#f8faff;border:1px solid #dde8f2;border-radius:8px}
+.hist-ym{font-size:11px;font-weight:700;color:#1a6fc4;background:#ddeeff;padding:2px 8px;border-radius:4px;flex-shrink:0;margin-top:2px;white-space:nowrap}
+.hist-txt{font-size:13px;color:#1a3a5c;flex:1;line-height:1.65}
+.hist-empty{font-size:12px;color:#aab8cc;font-style:italic;padding:8px 0}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-left">
+    <div class="hdr-badge">IPC</div>
+    <div>
+      <div class="hdr-title">&#128250; 대시보드 공지사항 입력</div>
+      <div class="hdr-sub">통합현장 근무현황 대시보드 전용 마퀴 공지</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <a class="hdr-link" href="https://i2002da.github.io/ipark-roster/dashboard.html" target="_blank">&#128250; 대시보드</a>
+    <a class="hdr-link" href="https://i2002da.github.io/ipark-roster/" target="_blank">&#128203; 휴무계획표</a>
+  </div>
+</div>
+
+<!-- 실시간 마퀴 미리보기 -->
+<div class="preview-bar">
+  <div class="preview-prefix">&#128226; 공지</div>
+  <div class="preview-track">
+    <span class="preview-text" id="pvText" style="display:none"></span>
+    <span class="preview-empty" id="pvEmpty">공지사항을 입력하면 미리보기가 표시됩니다</span>
+  </div>
+</div>
+
+<div class="content">
+  <div class="guide">
+    <div class="guide-title">&#128161; 안내</div>
+    <ul>
+      <li>이 페이지는 <b>통합 대시보드(dashboard.html)</b> 하단 공지 전용입니다</li>
+      <li>현장별 휴무계획표 공지와는 <b>완전히 분리</b>됩니다</li>
+      <li>단지 구분 없이 <b>하나의 공지문</b>을 입력하면 전체 대시보드에 표시됩니다</li>
+      <li>저장 즉시 Firebase 동기화 → 대시보드 실시간 반영</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr">
+      <div>
+        <div class="card-title">&#128226; 공지사항 작성</div>
+        <div class="card-sub">dashNotice 경로 저장 (현장 notices와 완전 분리)</div>
+      </div>
+      <div id="toast" class="toast"></div>
+    </div>
+    <div class="card-body">
+      <!-- 월 선택 -->
+      <div class="month-row">
+        <div class="month-box">
+          <span style="font-size:13px;color:#3d6b9a;font-weight:600">대상 월:</span>
+          <select id="selYear"></select>년
+          <select id="selMonth"></select>월
+        </div>
+        <span class="month-lbl" id="curSaved"></span>
+      </div>
+
+      <!-- 입력 -->
+      <div class="inp-lbl">
+        공지 내용 <span class="char-cnt" id="charCnt">0자</span>
+      </div>
+      <textarea id="noticeInp" placeholder="예) 2026년 5월 안전교육 실시 — 5/20(수) 오전 10시, 전 현장 소장 필참" oninput="onInput()"></textarea>
+
+      <div class="btn-row">
+        <button class="btn-del" onclick="delNotice()">&#128465; 이달 공지 삭제</button>
+        <button class="btn-save" id="btnSave" onclick="saveNotice()">
+          &#128190; 대시보드에 저장
+        </button>
+      </div>
+
+      <!-- 저장된 이력 -->
+      <div class="history-title">&#128196; 저장된 공지 이력</div>
+      <div class="history-list" id="historyList">
+        <span class="hist-empty">불러오는 중...</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const FB={apiKey:"AIzaSyB57PgBcbvN58iar6ZEvRMXOc_xSagQR68",authDomain:"workingday-efcd6.firebaseapp.com",databaseURL:"https://workingday-efcd6-default-rtdb.firebaseio.com",projectId:"workingday-efcd6",storageBucket:"workingday-efcd6.firebasestorage.app",messagingSenderId:"665757328084",appId:"1:665757328084:web:95a745423e01082c3ad141"};
+const DB_PATH='hdr_v1/dashNotice';
+let _db=null, _allData={};
+
+function pad(n){return String(n).padStart(2,'0')}
+function getYm(){return String(+document.getElementById('selYear').value)+pad(+document.getElementById('selMonth').value)}
+function ymLabel(ym){return ym.slice(0,4)+'년 '+parseInt(ym.slice(4))+'월'}
+
+// 월 선택 초기화
+function initMonthSel(){
+  const today=new Date(),sy=document.getElementById('selYear'),sm=document.getElementById('selMonth');
+  for(let y=2026;y<=2028;y++){const o=document.createElement('option');o.value=y;o.textContent=y;if(y===today.getFullYear())o.selected=true;sy.appendChild(o);}
+  for(let m=1;m<=12;m++){const o=document.createElement('option');o.value=m;o.textContent=pad(m);if(m===today.getMonth()+1)o.selected=true;sm.appendChild(o);}
+  sy.addEventListener('change',onMonthChange);
+  sm.addEventListener('change',onMonthChange);
+}
+function onMonthChange(){
+  const ym=getYm();
+  const cur=typeof _allData==='object'?(_allData[ym]||''):_allData;
+  document.getElementById('noticeInp').value=cur;
+  onInput();
+  updateSavedLabel();
+}
+
+// 입력 이벤트
+function onInput(){
+  const v=document.getElementById('noticeInp').value;
+  document.getElementById('charCnt').textContent=v.length+'자';
+  updatePreview(v.trim());
+}
+
+// 마퀴 미리보기
+function updatePreview(txt){
+  const span=document.getElementById('pvText'),empty=document.getElementById('pvEmpty');
+  if(!txt){span.style.display='none';empty.style.display='';}
+  else{
+    span.textContent=txt;span.style.display='';empty.style.display='none';
+    const dur=Math.max(20,txt.length*0.25);
+    span.style.animation='none';void span.offsetWidth;
+    span.style.animation='marquee '+dur+'s linear infinite';
+  }
+}
+
+// 저장된 이력 표시
+function renderHistory(){
+  const list=document.getElementById('historyList');
+  const entries=typeof _allData==='object'?Object.entries(_allData).filter(([k])=>!k.endsWith('_custom')).sort((a,b)=>b[0].localeCompare(a[0])):[];
+  if(!entries.length){list.innerHTML='<span class="hist-empty">저장된 공지가 없습니다</span>';return;}
+  list.innerHTML=entries.map(([ym,txt])=>
+    `<div class="history-item">
+      <span class="hist-ym">${ymLabel(ym)}</span>
+      <span class="hist-txt">${txt}</span>
+    </div>`
+  ).join('');
+}
+
+function updateSavedLabel(){
+  const ym=getYm(),cur=typeof _allData==='object'?(_allData[ym]||''):_allData;
+  document.getElementById('curSaved').textContent=cur?'현재 저장된 공지 있음':'저장된 공지 없음';
+}
+
+// 저장
+async function saveNotice(){
+  const val=document.getElementById('noticeInp').value.trim();
+  const ym=getYm();
+  const btn=document.getElementById('btnSave');
+  btn.disabled=true;btn.textContent='저장 중...';
+  try{
+    if(!val){await _db.child(ym).remove();}
+    else{await _db.child(ym).set(val);}
+    showToast('저장 완료 — 대시보드에 즉시 반영',false);
+  }catch(e){showToast('저장 실패: '+e.message,true);}
+  btn.disabled=false;btn.textContent='대시보드에 저장';
+}
+
+async function delNotice(){
+  const ym=getYm();
+  if(!confirm(ymLabel(ym)+' 공지를 삭제하시겠습니까?')) return;
+  document.getElementById('noticeInp').value='';
+  onInput();
+  await saveNotice();
+}
+
+function showToast(msg,err){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast '+(err?'err':'ok');
+  setTimeout(()=>{t.className='toast';},3500);
+}
+
+// Firebase 초기화
+(async()=>{
+  initMonthSel();
+  for(let i=0;i<50;i++){if(window.firebase&&window.firebase.database)break;await new Promise(r=>setTimeout(r,100));}
+  try{
+    if(!firebase.apps.length) firebase.initializeApp(FB);
+    _db=firebase.database().ref(DB_PATH);
+    _db.on('value',snap=>{
+      _allData=snap.val()||{};
+      // 현재 선택 월 데이터 반영
+      const ym=getYm();
+      const cur=typeof _allData==='object'?(_allData[ym]||''):_allData;
+      const inp=document.getElementById('noticeInp');
+      if(inp&&inp.value===''||inp.value===cur) inp.value=cur;
+      onInput();
+      updateSavedLabel();
+      renderHistory();
+    });
+  }catch(e){
+    document.getElementById('historyList').innerHTML='<span class="hist-empty" style="color:#c0392b">연결 실패: '+e.message+'</span>';
+  }
+})();
+</script>
+</body>
+</html>
