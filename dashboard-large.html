@@ -167,6 +167,7 @@ body{display:flex;flex-direction:column}
 <script>
 var DB = "https://workingday-efcd6-default-rtdb.firebaseio.com/hdr_v1";
 var WD = ["일","월","화","수","목","금","토"];
+var _prevNotice = "";
 
 // ── 날짜 유틸 ──────────────────────────────────────────
 function pad(n){return ("0"+n).slice(-2);}
@@ -307,12 +308,16 @@ function render(data){
   var bar=document.getElementById("noticeBar");
   var span=document.getElementById("noticeText");
   if(noticeTxt&&noticeTxt.trim()){
-    span.textContent=noticeTxt.trim();
     bar.style.display="flex";
-    var dur=Math.max(20,noticeTxt.length*0.25);
-    span.style.animation="none";
-    span.style.animation="marquee "+dur+"s linear infinite";
-  }else{bar.style.display="none";}
+    if(noticeTxt!==_prevNotice){
+      _prevNotice=noticeTxt;
+      span.textContent=noticeTxt.trim();
+      var dur=Math.max(20,noticeTxt.length*0.25);
+      span.style.animation="none";
+      void span.offsetWidth;
+      span.style.animation="marquee "+dur+"s linear infinite";
+    }
+  }else{bar.style.display="none";_prevNotice="";}
 
   // 갱신 시각
   var now=new Date();
