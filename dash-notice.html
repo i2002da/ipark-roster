@@ -327,6 +327,8 @@ function getStatus(item){
 
 function renderList(){
   var list=document.getElementById('noticeList');
+  // null/undefined 항목 재필터 (안전장치)
+  _items=_items.filter(function(x){return x&&x.text;});
   if(!_items.length){list.innerHTML='<span class="ni-empty">등록된 공지가 없습니다</span>';return;}
   var today=todayStr();
   // 정렬: 게시중 → 예정 → 종료
@@ -362,18 +364,74 @@ function renderList(){
 
 function showToast(msg,err){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(err?'err':'ok');setTimeout(function(){t.className='toast';},3500);}
 
+// items 파싱 — null 필터 + 객체 형태 대응
+function parseItems(raw){
+  if(!raw) return [];
+  if(Array.isArray(raw)) return raw.filter(function(x){return x!=null;});
+  if(typeof raw==='object'){
+    return Object.keys(raw).sort(function(a,b){return +a- +b;}).map(function(k){return raw[k];}).filter(function(x){return x!=null;});
+  }
+  return [];
+}
+
+// REST API 폴백 (SDK 리스너 실패 시 보험)
+function restFetch(){
+  var xhr=new XMLHttpRequest();
+  xhr.open('GET',FB.databaseURL+'/'+DB_PATH+'.json',true);
+  xhr.timeout=10000;
+  xhr.onreadystatechange=function(){
+    if(xhr.readyState===4&&xhr.status===200){
+      try{
+        var d=JSON.parse(xhr.responseText)||{};
+        var ni=parseItems(d.items);
+        if(JSON.stringify(ni)!==JSON.stringify(_items)){
+          _items=ni; renderList(); updatePreview();
+        }
+      }catch(e){}
+    }
+  };
+  xhr.onerror=function(){};
+  xhr.send();
+}
+
+// Firebase 리스너 (에러 시 자동 재연결)
+var _listenerActive=false;
+function setupListener(){
+  if(!_db) return;
+  if(_listenerActive) try{_db.off('value');}catch(e){}
+  _listenerActive=true;
+  _db.on('value',function(snap){
+    var d=snap.val()||{};
+    _items=parseItems(d.items);
+    renderList();
+    updatePreview();
+  },function(err){
+    // 에러 발생 시 리스너 취소됨 → 5초 후 재연결
+    _listenerActive=false;
+    console.error('Firebase listener error:',err);
+    setTimeout(setupListener,5000);
+  });
+}
+
 (async function(){
   initDates();
   for(var i=0;i<50;i++){if(window.firebase&&window.firebase.database)break;await new Promise(function(r){setTimeout(r,100);});}
   try{
     if(!firebase.apps.length) firebase.initializeApp(FB);
     _db=firebase.database().ref(DB_PATH);
-    _db.on('value',function(snap){
-      var d=snap.val()||{};
-      _items=Array.isArray(d.items)?d.items:[];
-      renderList();
-      updatePreview();
+
+    // 연결 상태 모니터링
+    firebase.database().ref('.info/connected').on('value',function(snap){
+      if(snap.val()===true){
+        // 재연결 시 리스너 재설정
+        if(!_listenerActive) setupListener();
+      }
     });
+
+    setupListener();
+
+    // REST 폴백: 60초마다 데이터 검증 (리스너 사망 보험)
+    setInterval(restFetch,60000);
   }catch(e){
     document.getElementById('noticeList').innerHTML='<span class="ni-empty" style="color:#c0392b">연결 실패: '+e.message+'</span>';
   }
@@ -381,4 +439,5 @@ function showToast(msg,err){var t=document.getElementById('toast');t.textContent
 </script>
 </body>
 </html>
+
 
