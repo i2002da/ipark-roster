@@ -68,7 +68,7 @@ body{display:flex;flex-direction:column}
 .notice-bar{flex-shrink:0;height:64px;background:#0a1e38;border-top:1px solid #1e3550;display:none;align-items:center;overflow:hidden}
 .notice-prefix{flex-shrink:0;padding:0 20px;font-size:26px;font-weight:700;color:#60a5fa;background:#060e1e;height:100%;display:flex;align-items:center;border-right:1px solid #1e3550;white-space:nowrap}
 .notice-track{flex:1;overflow:hidden;position:relative;height:100%;display:flex;align-items:center}
-.notice-text{display:inline-block;white-space:nowrap;font-size:38px;color:rgba(255,255,255,.9);font-weight:600;position:absolute;padding-left:100%}
+.notice-text{display:inline-block;white-space:nowrap;font-size:38px;color:rgba(255,255,255,.9);font-weight:600;position:absolute;left:0;top:50%;transform:translateY(-50%)}
 
 /* 하단 */
 .footer{flex-shrink:0;height:36px;background:#060e1a;border-top:1px solid #1e3550;display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-size:16px}
@@ -83,7 +83,6 @@ body{display:flex;flex-direction:column}
 .load-txt{color:rgba(255,255,255,.35);font-size:18px}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
-@keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
 
 /* 글씨 크기 조절 */
 .font-ctrl{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:5px 12px;flex-shrink:0}
@@ -167,7 +166,36 @@ body{display:flex;flex-direction:column}
 <script>
 var DB = "https://workingday-efcd6-default-rtdb.firebaseio.com/hdr_v1";
 var WD = ["일","월","화","수","목","금","토"];
-var _prevNotice = "";
+
+// ── JS 마퀴 (CSS animation 대신 — 매직인포 장시간 호환) ──
+var _mqTimer=null, _mqPos=0, _mqTxt="";
+function startMarquee(txt){
+  var span=document.getElementById("noticeText");
+  var track=document.querySelector(".notice-track");
+  if(!span||!track) return;
+  if(txt===_mqTxt && _mqTimer) return;
+  _mqTxt=txt;
+  span.textContent=txt;
+  span.style.animation="none";
+  var trackW=track.offsetWidth;
+  var textW=span.offsetWidth;
+  _mqPos=trackW;
+  var speed=Math.max(1, Math.round((trackW+textW) / (Math.max(20,txt.length*0.25)*30)));
+  if(_mqTimer){clearInterval(_mqTimer);_mqTimer=null;}
+  _mqTimer=setInterval(function(){
+    _mqPos-=speed;
+    if(_mqPos< -textW){
+      trackW=track.offsetWidth;
+      textW=span.offsetWidth;
+      _mqPos=trackW;
+    }
+    span.style.transform="translateY(-50%) translateX("+_mqPos+"px)";
+  },33);
+}
+function stopMarquee(){
+  if(_mqTimer){clearInterval(_mqTimer);_mqTimer=null;}
+  _mqTxt="";
+}
 
 // ── 날짜 유틸 ──────────────────────────────────────────
 function pad(n){return ("0"+n).slice(-2);}
@@ -306,18 +334,10 @@ function render(data){
     noticeTxt=typeof dn==="object"?(dn[ym]||""):dn;
   }
   var bar=document.getElementById("noticeBar");
-  var span=document.getElementById("noticeText");
   if(noticeTxt&&noticeTxt.trim()){
     bar.style.display="flex";
-    if(noticeTxt!==_prevNotice){
-      _prevNotice=noticeTxt;
-      span.textContent=noticeTxt.trim();
-      var dur=Math.max(20,noticeTxt.length*0.25);
-      span.style.animation="none";
-      void span.offsetWidth;
-      span.style.animation="marquee "+dur+"s linear infinite";
-    }
-  }else{bar.style.display="none";_prevNotice="";}
+    startMarquee(noticeTxt.trim());
+  }else{bar.style.display="none";stopMarquee();}
 
   // 갱신 시각
   var now=new Date();
