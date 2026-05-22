@@ -317,19 +317,24 @@ function render(data){
   var dn=data.dashNotice||{};
   var today2=ref; // 기준일
   var noticeTxt="";
-  // 새 형식: dashNotice.items = [{text,startDate,endDate}, ...]
-  if(dn.items && Array.isArray(dn.items)){
+  // items 파싱 (배열/객체 모두 대응, null 필터)
+  var dnItems=null;
+  if(dn.items){
+    if(Array.isArray(dn.items)) dnItems=dn.items.filter(function(x){return x!=null;});
+    else if(typeof dn.items==="object") dnItems=Object.keys(dn.items).sort(function(a,b){return +a- +b;}).map(function(k){return dn.items[k];}).filter(function(x){return x!=null;});
+  }
+  if(dnItems&&dnItems.length){
     var activeItems=[];
-    for(var ni=0;ni<dn.items.length;ni++){
-      var item=dn.items[ni];
-      if(item.text && item.startDate && item.endDate){
+    for(var ni=0;ni<dnItems.length;ni++){
+      var item=dnItems[ni];
+      if(item&&item.text && item.startDate && item.endDate){
         if(today2>=item.startDate && today2<=item.endDate){
           activeItems.push(item.text.trim());
         }
       }
     }
     noticeTxt=activeItems.join("          ");
-  } else {
+  } else if(!dnItems) {
     // 구형식: dashNotice[ymKey] = 문자열
     noticeTxt=typeof dn==="object"?(dn[ym]||""):dn;
   }
