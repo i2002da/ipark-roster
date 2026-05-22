@@ -110,6 +110,8 @@ body{display:flex;flex-direction:column}
   <div class="hdr-right">
     <!-- 현장 휴무계획표 바로가기 -->
     <a class="btn-roster" href="https://i2002da.github.io/ipark-roster/" target="_blank">&#128203; 휴무계획표</a>
+    <!-- 공지입력 바로가기 -->
+    <a class="btn-roster" href="https://i2002da.github.io/ipark-roster/dash-notice.html" target="_blank" style="background:rgba(250,204,21,.15);border-color:rgba(250,204,21,.35);color:#fde047">&#128226; 공지입력</a>
     <!-- 글씨 크기 조절 -->
     <div class="font-ctrl">
       <span class="font-ctrl-lbl">글씨</span>
@@ -282,10 +284,26 @@ function render(data){
   document.getElementById("gOff").style.flex=offAll||0;
   document.getElementById("gAbs").style.flex=absAll||0;
 
-  // 공지사항 (dashNotice)
+  // 공지사항 (dashNotice) — 기간 방식 + 기존 ymKey 방식 하위호환
   var dn=data.dashNotice||{};
-  var noticeYm=ym;
-  var noticeTxt=typeof dn==="object"?(dn[noticeYm]||""):dn;
+  var today2=ref; // 기준일
+  var noticeTxt="";
+  // 새 형식: dashNotice.items = [{text,startDate,endDate}, ...]
+  if(dn.items && Array.isArray(dn.items)){
+    var activeItems=[];
+    for(var ni=0;ni<dn.items.length;ni++){
+      var item=dn.items[ni];
+      if(item.text && item.startDate && item.endDate){
+        if(today2>=item.startDate && today2<=item.endDate){
+          activeItems.push(item.text.trim());
+        }
+      }
+    }
+    noticeTxt=activeItems.join("          ");
+  } else {
+    // 구형식: dashNotice[ymKey] = 문자열
+    noticeTxt=typeof dn==="object"?(dn[ym]||""):dn;
+  }
   var bar=document.getElementById("noticeBar");
   var span=document.getElementById("noticeText");
   if(noticeTxt&&noticeTxt.trim()){
