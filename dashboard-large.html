@@ -410,20 +410,16 @@ function showNotice(){
 }
 
 // ── 글씨 크기 조절 ─────────────────────────────────────
-// BASE_SIZES: 원본 px 값 배열 (CSS 내 font-size:Npx 값들)
-var _fontScale = 130;  // % (130% 대형화면 버전)
-var _fontStep  = 5;    // 5% 단위
+var _fontScale = 130;  // % (130% 대형화면 기본)
+var _fontStep  = 5;
 var _fontMin   = 70;
 var _fontMax   = 200;
-
-// CSS 텍스트에서 font-size 값을 파싱 → 동적으로 <style> 교체
 var _origStyle = null;
 
 function initFontCtrl(){
-  // 원본 스타일 저장 (최초 1회)
   var styleEl = document.querySelector('style');
   if(styleEl && !_origStyle) _origStyle = styleEl.textContent;
-  // localStorage에서 복원
+  // localStorage 로컬 복원 (초기값)
   try{
     var saved = localStorage.getItem('dash_font_scale_large');
     if(saved) _fontScale = +saved;
@@ -432,7 +428,7 @@ function initFontCtrl(){
 }
 
 function adjFont(dir){
-  if(dir===0){ _fontScale=100; }
+  if(dir===0){ _fontScale=130; }
   else{ _fontScale = Math.min(_fontMax, Math.max(_fontMin, _fontScale + dir*_fontStep)); }
   applyFontScale();
   try{ localStorage.setItem('dash_font_scale_large', _fontScale); }catch(e){}
@@ -450,13 +446,35 @@ function applyFontScale(){
   if(styleEl) styleEl.textContent = newCss;
 }
 
+// Firebase에서 글씨 크기 원격 동기화
+function loadFontScale(){
+  var xhr=new XMLHttpRequest();
+  xhr.open("GET",DB+"/dashSettings/fontScaleLarge.json",true);
+  xhr.timeout=5000;
+  xhr.onreadystatechange=function(){
+    if(xhr.readyState===4 && xhr.status===200){
+      try{
+        var val=JSON.parse(xhr.responseText);
+        if(val && typeof val==="number" && val>=_fontMin && val<=_fontMax && val!==_fontScale){
+          _fontScale=val;
+          applyFontScale();
+          try{ localStorage.setItem('dash_font_scale_large', _fontScale); }catch(e){}
+        }
+      }catch(e){}
+    }
+  };
+  xhr.send();
+}
+
 // 초기 로드 + 자동 갱신
 initDateInp();
 initFontCtrl();
 loadData();
 loadNotice();
+loadFontScale();
 setInterval(loadData,30000);
 setInterval(loadNotice,15000);
+setInterval(loadFontScale,10000); // 글씨 크기 원격 동기화 10초
 
 // 자정 자동 새로고침
 (function(){
@@ -467,4 +485,5 @@ setInterval(loadNotice,15000);
 </script>
 </body>
 </html>
+
 
