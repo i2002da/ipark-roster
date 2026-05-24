@@ -327,12 +327,12 @@ function getStatus(item){
 
 function renderList(){
   var list=document.getElementById('noticeList');
-  // null/undefined 항목 재필터 (안전장치)
-  _items=_items.filter(function(x){return x&&x.text;});
-  if(!_items.length){list.innerHTML='<span class="ni-empty">등록된 공지가 없습니다</span>';return;}
+  // null/undefined 항목은 표시에서만 제외 (전역 _items 변경 금지)
+  var validItems=_items.filter(function(x){return x&&x.text;});
+  if(!validItems.length){list.innerHTML='<span class="ni-empty">등록된 공지가 없습니다</span>';return;}
   var today=todayStr();
-  // 정렬: 게시중 → 예정 → 종료
-  var sorted=_items.map(function(it,i){return {it:it,i:i};}).sort(function(a,b){
+  // 정렬: 게시중 → 예정 → 종료 (유효한 항목만, 원본 인덱스 유지)
+  var sorted=_items.map(function(it,i){return {it:it,i:i};}).filter(function(obj){return obj.it&&obj.it.text;}).sort(function(a,b){
     var oa=a.it.endDate<today?2:a.it.startDate>today?1:0;
     var ob=b.it.endDate<today?2:b.it.startDate>today?1:0;
     if(oa!==ob) return oa-ob;
@@ -439,5 +439,6 @@ function setupListener(){
 </script>
 </body>
 </html>
+
 
 

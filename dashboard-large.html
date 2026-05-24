@@ -168,7 +168,7 @@ var DB = "https://workingday-efcd6-default-rtdb.firebaseio.com/hdr_v1";
 var WD = ["일","월","화","수","목","금","토"];
 
 // ── JS 마퀴 (CSS animation 대신 — 매직인포 장시간 호환) ──
-var _mqTimer=null, _mqPos=0, _mqTxt="";
+var _mqTimer=null, _mqPos=0, _mqTxt="", _mqLastMove=0;
 function startMarquee(txt){
   var span=document.getElementById("noticeText");
   var track=document.querySelector(".notice-track");
@@ -180,6 +180,7 @@ function startMarquee(txt){
   var trackW=track.offsetWidth;
   var textW=span.offsetWidth;
   _mqPos=trackW;
+  _mqLastMove=Date.now();
   var speed=Math.max(1, Math.round((trackW+textW) / (Math.max(20,txt.length*0.25)*30)));
   if(_mqTimer){clearInterval(_mqTimer);_mqTimer=null;}
   _mqTimer=setInterval(function(){
@@ -190,12 +191,19 @@ function startMarquee(txt){
       _mqPos=trackW;
     }
     span.style.transform="translateY(-50%) translateX("+_mqPos+"px)";
+    _mqLastMove=Date.now();
   },33);
 }
 function stopMarquee(){
   if(_mqTimer){clearInterval(_mqTimer);_mqTimer=null;}
-  _mqTxt="";
+  _mqTxt="";_mqLastMove=0;
 }
+setInterval(function(){
+  if(_mqTxt && _mqLastMove && (Date.now()-_mqLastMove>3000)){
+    var txt=_mqTxt; _mqTxt="";
+    startMarquee(txt);
+  }
+},5000);
 
 // ── 날짜 유틸 ──────────────────────────────────────────
 function pad(n){return ("0"+n).slice(-2);}
@@ -313,37 +321,6 @@ function render(data){
   document.getElementById("gOff").style.flex=offAll||0;
   document.getElementById("gAbs").style.flex=absAll||0;
 
-  // 공지사항 (dashNotice) — 기간 방식 + 기존 ymKey 방식 하위호환
-  var dn=data.dashNotice||{};
-  var today2=ref; // 기준일
-  var noticeTxt="";
-  // items 파싱 (배열/객체 모두 대응, null 필터)
-  var dnItems=null;
-  if(dn.items){
-    if(Array.isArray(dn.items)) dnItems=dn.items.filter(function(x){return x!=null;});
-    else if(typeof dn.items==="object") dnItems=Object.keys(dn.items).sort(function(a,b){return +a- +b;}).map(function(k){return dn.items[k];}).filter(function(x){return x!=null;});
-  }
-  if(dnItems&&dnItems.length){
-    var activeItems=[];
-    for(var ni=0;ni<dnItems.length;ni++){
-      var item=dnItems[ni];
-      if(item&&item.text && item.startDate && item.endDate){
-        if(today2>=item.startDate && today2<=item.endDate){
-          activeItems.push(item.text.trim());
-        }
-      }
-    }
-    noticeTxt=activeItems.join("          ");
-  } else if(!dnItems) {
-    // 구형식: dashNotice[ymKey] = 문자열
-    noticeTxt=typeof dn==="object"?(dn[ym]||""):dn;
-  }
-  var bar=document.getElementById("noticeBar");
-  if(noticeTxt&&noticeTxt.trim()){
-    bar.style.display="flex";
-    startMarquee(noticeTxt.trim());
-  }else{bar.style.display="none";stopMarquee();}
-
   // 갱신 시각
   var now=new Date();
   document.getElementById("ftTime").textContent=
@@ -360,7 +337,7 @@ function loadData(){
   var url=DB+".json";
   var xhr=new XMLHttpRequest();
   xhr.open("GET",url,true);
-  xhr.timeout=10000;
+  xhr.timeout=15000;
   xhr.onreadystatechange=function(){
     if(xhr.readyState===4){
       if(xhr.status===200){
@@ -377,6 +354,59 @@ function loadData(){
   };
   xhr.onerror=function(){document.getElementById("syncLbl").textContent="네트워크 오류. 재시도 중...";}
   xhr.send();
+}
+
+// ── 공지사항 전용 로드 (별도 요청 — 메인 데이터와 독립) ────
+var _cachedNotice="";
+function parseNoticeItems(raw){
+  if(!raw) return [];
+  if(Array.isArray(raw)) return raw.filter(function(x){return x!=null;});
+  if(typeof raw==='object') return Object.keys(raw).sort(function(a,b){return +a- +b;}).map(function(k){return raw[k];}).filter(function(x){return x!=null;});
+  return [];
+}
+function loadNotice(){
+  var xhr=new XMLHttpRequest();
+  xhr.open("GET",DB+"/dashNotice.json",true);
+  xhr.timeout=8000;
+  xhr.onreadystatechange=function(){
+    if(xhr.readyState===4){
+      if(xhr.status===200){
+        try{
+          var dn=JSON.parse(xhr.responseText)||{};
+          var ref=getRef();
+          var ym=ref.slice(0,4)+ref.slice(5,7);
+          var noticeTxt="";
+          var dnItems=parseNoticeItems(dn.items);
+          if(dnItems.length){
+            var active=[];
+            for(var i=0;i<dnItems.length;i++){
+              var it=dnItems[i];
+              if(it&&it.text&&it.startDate&&it.endDate){
+                if(ref>=it.startDate&&ref<=it.endDate) active.push(it.text.trim());
+              }
+            }
+            noticeTxt=active.join("          ");
+          } else if(!dn.items){
+            noticeTxt=typeof dn==="object"?(dn[ym]||""):((typeof dn==="string")?dn:"");
+          }
+          _cachedNotice=noticeTxt;
+        }catch(e){}
+      }
+      showNotice();
+    }
+  };
+  xhr.onerror=function(){showNotice();};
+  xhr.send();
+}
+function showNotice(){
+  var bar=document.getElementById("noticeBar");
+  if(_cachedNotice&&_cachedNotice.trim()){
+    bar.style.display="flex";
+    startMarquee(_cachedNotice.trim());
+  }else{
+    bar.style.display="none";
+    stopMarquee();
+  }
 }
 
 // ── 글씨 크기 조절 ─────────────────────────────────────
@@ -420,11 +450,13 @@ function applyFontScale(){
   if(styleEl) styleEl.textContent = newCss;
 }
 
-// 초기 로드 + 30초 자동 갱신
+// 초기 로드 + 자동 갱신
 initDateInp();
 initFontCtrl();
 loadData();
+loadNotice();
 setInterval(loadData,30000);
+setInterval(loadNotice,15000);
 
 // 자정 자동 새로고침
 (function(){
@@ -435,3 +467,4 @@ setInterval(loadData,30000);
 </script>
 </body>
 </html>
+
