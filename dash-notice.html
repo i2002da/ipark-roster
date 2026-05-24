@@ -217,6 +217,32 @@ textarea::placeholder{color:#aab8cc}
       <div class="font-status" id="fontStatus">대형화면 대시보드(dashboard-large)에 실시간 반영됩니다 (10초 주기)</div>
     </div>
   </div>
+
+  <!-- 공지사항 이동 속도 조절 -->
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-title">&#9201; 공지사항 글자 이동 속도</div>
+    </div>
+    <div class="card-body" style="padding:20px 24px">
+      <div class="font-ctrl">
+        <div class="font-ctrl-group">
+          <button class="font-btn" onclick="adjSpeed(-10)">−</button>
+          <div class="font-val" id="speedVal">100%</div>
+          <button class="font-btn" onclick="adjSpeed(+10)">+</button>
+        </div>
+        <button class="font-reset" onclick="adjSpeed(0)">기본값 (100%)</button>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+        <button class="font-reset" onclick="setSpeed(50)">느리게 50%</button>
+        <button class="font-reset" onclick="setSpeed(75)">75%</button>
+        <button class="font-reset" onclick="setSpeed(100)">보통 100%</button>
+        <button class="font-reset" onclick="setSpeed(150)">150%</button>
+        <button class="font-reset" onclick="setSpeed(200)">빠르게 200%</button>
+      </div>
+      <div class="font-bar"><div class="font-bar-fill" id="speedBarFill" style="width:37%"></div></div>
+      <div class="font-status" id="speedStatus">통합 대시보드 · 대형화면 대시보드 모두에 실시간 반영됩니다 (10초 주기)</div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -482,6 +508,48 @@ function initFontCtrl(){
   });
 }
 
+// ── 공지 이동 속도 원격 조절 ──────────────────────────
+var _mqSpeed=100, _mqSpeedDb=null;
+var _mqSpeedMin=20, _mqSpeedMax=300, _mqSpeedStep=10;
+
+function adjSpeed(dir){
+  if(dir===0) _mqSpeed=100;
+  else _mqSpeed=Math.min(_mqSpeedMax,Math.max(_mqSpeedMin,_mqSpeed+dir));
+  updateSpeedUI();
+  saveSpeed();
+}
+function setSpeed(v){
+  _mqSpeed=Math.min(_mqSpeedMax,Math.max(_mqSpeedMin,v));
+  updateSpeedUI();
+  saveSpeed();
+}
+function updateSpeedUI(){
+  var el=document.getElementById('speedVal');
+  if(el) el.textContent=_mqSpeed+'%';
+  var bar=document.getElementById('speedBarFill');
+  if(bar) bar.style.width=Math.round((_mqSpeed-_mqSpeedMin)/(_mqSpeedMax-_mqSpeedMin)*100)+'%';
+}
+function saveSpeed(){
+  if(!_mqSpeedDb) return;
+  _mqSpeedDb.set(_mqSpeed).then(function(){
+    var st=document.getElementById('speedStatus');
+    if(st) st.textContent='✅ 속도 '+_mqSpeed+'% 저장 완료 — 대시보드에 10초 내 반영';
+  }).catch(function(e){
+    var st=document.getElementById('speedStatus');
+    if(st) st.textContent='❌ 저장 실패: '+e.message;
+  });
+}
+function initSpeedCtrl(){
+  _mqSpeedDb=firebase.database().ref('hdr_v1/dashSettings/marqueeSpeed');
+  _mqSpeedDb.on('value',function(snap){
+    var v=snap.val();
+    if(v && typeof v==='number' && v>=_mqSpeedMin && v<=_mqSpeedMax){
+      _mqSpeed=v;
+      updateSpeedUI();
+    }
+  });
+}
+
 (async function(){
   initDates();
   for(var i=0;i<50;i++){if(window.firebase&&window.firebase.database)break;await new Promise(function(r){setTimeout(r,100);});}
@@ -499,6 +567,7 @@ function initFontCtrl(){
 
     setupListener();
     initFontCtrl();
+    initSpeedCtrl();
 
     // REST 폴백: 60초마다 데이터 검증 (리스너 사망 보험)
     setInterval(restFetch,60000);
@@ -509,6 +578,7 @@ function initFontCtrl(){
 </script>
 </body>
 </html>
+
 
 
 

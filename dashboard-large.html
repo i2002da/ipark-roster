@@ -169,6 +169,7 @@ var WD = ["일","월","화","수","목","금","토"];
 
 // ── JS 마퀴 (CSS animation 대신 — 매직인포 장시간 호환) ──
 var _mqTimer=null, _mqPos=0, _mqTxt="", _mqLastMove=0;
+var _mqSpeedPct=100;
 function startMarquee(txt){
   var span=document.getElementById("noticeText");
   var track=document.querySelector(".notice-track");
@@ -181,7 +182,8 @@ function startMarquee(txt){
   var textW=span.offsetWidth;
   _mqPos=trackW;
   _mqLastMove=Date.now();
-  var speed=Math.max(1, Math.round((trackW+textW) / (Math.max(20,txt.length*0.25)*30)));
+  var baseSpeed=Math.max(1, Math.round((trackW+textW) / (Math.max(20,txt.length*0.25)*30)));
+  var speed=Math.max(1, Math.round(baseSpeed * _mqSpeedPct / 100));
   if(_mqTimer){clearInterval(_mqTimer);_mqTimer=null;}
   _mqTimer=setInterval(function(){
     _mqPos-=speed;
@@ -204,6 +206,23 @@ setInterval(function(){
     startMarquee(txt);
   }
 },5000);
+function loadMarqueeSpeed(){
+  var xhr=new XMLHttpRequest();
+  xhr.open("GET",DB+"/dashSettings/marqueeSpeed.json",true);
+  xhr.timeout=5000;
+  xhr.onreadystatechange=function(){
+    if(xhr.readyState===4 && xhr.status===200){
+      try{
+        var val=JSON.parse(xhr.responseText);
+        if(val && typeof val==="number" && val>=20 && val<=300 && val!==_mqSpeedPct){
+          _mqSpeedPct=val;
+          if(_mqTxt){ var t=_mqTxt; _mqTxt=""; startMarquee(t); }
+        }
+      }catch(e){}
+    }
+  };
+  xhr.send();
+}
 
 // ── 날짜 유틸 ──────────────────────────────────────────
 function pad(n){return ("0"+n).slice(-2);}
@@ -472,9 +491,11 @@ initFontCtrl();
 loadData();
 loadNotice();
 loadFontScale();
+loadMarqueeSpeed();
 setInterval(loadData,30000);
 setInterval(loadNotice,15000);
-setInterval(loadFontScale,10000); // 글씨 크기 원격 동기화 10초
+setInterval(loadFontScale,10000);
+setInterval(loadMarqueeSpeed,10000);
 
 // 자정 자동 새로고침
 (function(){
@@ -485,5 +506,6 @@ setInterval(loadFontScale,10000); // 글씨 크기 원격 동기화 10초
 </script>
 </body>
 </html>
+
 
 
