@@ -1092,7 +1092,7 @@ function saveState(){
         notices:S.notices,     nextId:S.nextId
       };
       _lastSent = JSON.stringify(payload);
-      await _db.set(payload);
+      await _db.update(payload);
       setSyncUI('ok', '💾 저장 완료');
     }catch(e){
       setSyncUI('err', '⚠ 저장 실패 (로컬 백업 유지)');
