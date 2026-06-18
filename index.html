@@ -697,7 +697,7 @@ const DEF_HOL={
 };
 
 let S={
-  site:'s5', year:2026, month:5,
+  site:'s5', year:new Date().getFullYear(), month:new Date().getMonth()+1,
   sites: JSON.parse(JSON.stringify(DEFAULT_SITES)),  // 동적 현장 목록
   nextSiteId: 1,                                      // 현장 ID 카운터
   employees:JSON.parse(JSON.stringify(INIT_EMP)),
@@ -2403,8 +2403,8 @@ async function exportExcel(){
   if(_monthParam && /^\d{6}$/.test(_monthParam)){
     S.year  = +_monthParam.slice(0,4);
     S.month = +_monthParam.slice(4,6);
-    clampToMin();
   }
+  clampToMin();  // 최소 연월 제한 (URL 파라미터 유무와 관계없이)
   buildTabs();
   renderTable();
   startPolling();
@@ -2838,3 +2838,4 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 </script>
 </body>
 </html>
+
