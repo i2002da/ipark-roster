@@ -424,6 +424,81 @@ thead th.c-tot-h,thead th.c-note-h{position:sticky;z-index:3;background:#0a2342;
 [data-theme="dark"] .site-del-btn{border-color:#7f1d1d;color:#f87171}.site-del-btn:hover{background:#2a0a0a}
 .btn-site-manage{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.28)}.btn-site-manage:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.5)}
 [data-theme="dark"] .btn-site-manage{background:rgba(61,155,220,.12);color:#7ac8f0;border-color:rgba(61,155,220,.3)}
+
+/* ═══════════════════════════════════════
+   모바일 반응형 (max-width: 767px)
+   ═══════════════════════════════════════ */
+@media(max-width:767px){
+  /* 헤더: 2줄 레이아웃 */
+  .hdr{flex-wrap:wrap;height:auto;padding:8px 12px;gap:6px}
+  .hdr-logo{flex:1;min-width:0}
+  .logo-img{height:26px}
+  .logo-t{font-size:12px}
+  .logo-s{font-size:10px}
+  .hdr-stats{display:none}
+  .hdr-r{width:100%;justify-content:flex-start;flex-wrap:wrap;gap:5px}
+  .hdr-mo-nav{order:-1}
+  .hdr-mo-lbl{min-width:60px;font-size:11px}
+  .btn-site-manage{display:none}
+  #btnHol{display:none}
+  .theme-btn .trk,.theme-btn #thLbl{display:none}
+  .theme-btn{padding:5px 8px;font-size:13px}
+  /* 탭 */
+  .tab-btn{padding:10px 12px;font-size:12px}
+  /* 컨트롤 줄 버튼들 */
+  .ctrl{gap:5px}
+  .btn{padding:6px 10px;font-size:11px}
+  /* 테이블: 데스크탑에서는 기존 유지, 모바일에서는 카드로 대체 */
+  .tbl-wrap{display:none}
+  /* 모바일 카드 뷰 */
+  .mobile-card-view{display:block}
+  .mc-month{font-size:13px;font-weight:700;color:var(--tx1);margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--bd-s)}
+  .mc-card{background:var(--bg-card);border:1px solid var(--bd-s);border-radius:10px;padding:12px;margin-bottom:10px;box-shadow:0 1px 4px rgba(10,35,66,.07)}
+  .mc-card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .mc-card-name{font-size:15px;font-weight:700;color:var(--tx1)}
+  .mc-card-dept{font-size:11px;background:var(--acc-bg);color:var(--acc-tx);padding:2px 8px;border-radius:10px;font-weight:600}
+  .mc-card-off-count{font-size:13px;font-weight:700;color:#c0392b;background:#fff0f0;padding:3px 10px;border-radius:6px}
+  .mc-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-top:6px}
+  .mc-cal-hd{text-align:center;font-size:9px;font-weight:700;padding:3px 0;color:var(--tx4)}
+  .mc-cal-hd.sat{color:var(--sat-tx)}
+  .mc-cal-hd.sun{color:var(--sun-tx)}
+  .mc-day{position:relative;text-align:center;padding:5px 2px;border-radius:4px;font-size:11px;min-height:28px;display:flex;align-items:center;justify-content:center;font-weight:500;cursor:pointer;transition:filter .1s}
+  .mc-day.s-pre{background:repeating-linear-gradient(45deg,#e8ecf0,#e8ecf0 2px,#f5f7fa 2px,#f5f7fa 6px);opacity:.5;cursor:not-allowed;font-size:9px;color:var(--tx4)}
+  .mc-day.s-sat{background:var(--sat-bg);color:var(--sat-tx)}
+  .mc-day.s-sun{background:var(--sun-bg);color:var(--sun-tx)}
+  .mc-day.s-ch{background:var(--ch-bg);color:var(--ch-tx)}
+  .mc-day.s-off{background:#c8e8d0;color:#1a7a40;font-weight:700}
+  .mc-day.s-sat.s-off{background:var(--sat-bg);color:#1565a8}
+  .mc-day.s-sun.s-off{background:var(--sun-bg);color:#c0392b}
+  .mc-day.s-ch.s-off{background:var(--ch-bg);color:#1a7a40}
+  .mc-day.s-off::after{content:'●';position:absolute;bottom:1px;right:2px;font-size:8px;line-height:1}
+  .mc-day.s-abs{background:var(--abs-bg);color:var(--abs-tx);font-size:10px}
+  .mc-day:hover:not(.s-pre){filter:brightness(.92)}
+  [data-theme="dark"] .mc-day:hover:not(.s-pre){filter:brightness(1.2)}
+  .mc-sum-row{background:var(--bg-sum);border:1px solid var(--bd-s);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+  .mc-sum-title{font-size:11px;color:var(--tx3);font-weight:600;margin-bottom:6px}
+  .mc-sum-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+  .mc-sum-cell{text-align:center;font-size:10px;font-weight:700;padding:4px 2px;border-radius:3px;color:var(--tx2)}
+  .mc-sum-cell.sn-sat{background:#c8e4f8;color:#1565a8}
+  .mc-sum-cell.sn-sun{background:#ffd5d5;color:#8b1a1a}
+  .mc-sum-cell.sn-ch{background:#c8ecd8;color:#1a5c30}
+  .mc-sum-cell.sn-work{color:#0d5aa7}
+  .mc-sum-hd{text-align:center;font-size:9px;padding:3px 2px;color:var(--tx4)}
+  .mc-sum-hd.sat{color:var(--sat-tx)}
+  .mc-sum-hd.sun{color:var(--sun-tx)}
+  [data-theme="dark"] .mc-day.s-off{background:#0a2010;color:#4ade80}
+  [data-theme="dark"] .mc-sum-cell.sn-sat{background:#0a1e38;color:#7ac8f0}
+  [data-theme="dark"] .mc-sum-cell.sn-sun{background:#2a0a0a;color:#f87171}
+  [data-theme="dark"] .mc-sum-cell.sn-ch{background:#0a1e0a;color:#4ade80}
+  /* legend 모바일 간소화 */
+  .legend{gap:8px;padding:7px 10px}
+  .leg-i:last-child{display:none}
+  /* 공지사항 */
+  .nb-wrap{margin-top:10px}
+  .content{padding:12px}
+}
+/* 데스크탑에서 카드뷰 숨김 */
+.mobile-card-view{display:none}
 </style>
 </head>
 <body>
@@ -697,7 +772,7 @@ const DEF_HOL={
 };
 
 let S={
-  site:'s5', year:new Date().getFullYear(), month:new Date().getMonth()+1,
+  site:'s5', year:2026, month:5,
   sites: JSON.parse(JSON.stringify(DEFAULT_SITES)),  // 동적 현장 목록
   nextSiteId: 1,                                      // 현장 ID 카운터
   employees:JSON.parse(JSON.stringify(INIT_EMP)),
@@ -1092,7 +1167,7 @@ function saveState(){
         notices:S.notices,     nextId:S.nextId
       };
       _lastSent = JSON.stringify(payload);
-      await _db.update(payload);
+      await _db.set(payload);
       setSyncUI('ok', '💾 저장 완료');
     }catch(e){
       setSyncUI('err', '⚠ 저장 실패 (로컬 백업 유지)');
@@ -1276,7 +1351,7 @@ function renderTable(){
       <button class="btn btn-pdf" data-action="exportPDF">PDF 저장</button>
       <button class="btn btn-excel" data-action="exportExcel">엑셀 저장</button>
       <a class="btn btn-manual" href="https://i2002da.github.io/ipark-roster/manual.html" target="_blank" rel="noopener">📖 매뉴얼</a>
-      <a class="btn btn-dashboard" href="https://i2002da.github.io/ipark-roster/dashboard.html" target="_blank" rel="noopener">📺 대시보드</a>
+      <a class="btn btn-dashboard" href="https://i2002da.github.io/ipark-roster/${window.innerWidth<768?'dashboard-mobile.html':'dashboard.html'}" target="_blank" rel="noopener">📺 대시보드</a>
     </div>
 
     <div class="bulk-panel" id="bulkPanel">
@@ -1371,6 +1446,69 @@ function renderTable(){
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <div class="mobile-card-view" id="mobileCardView">
+      <div class="mc-month">${y}년 ${m}월 근무표</div>
+      <div class="mc-sum-row">
+        <div class="mc-sum-title">📊 일별 근무 인원수</div>
+        <div class="mc-sum-grid">
+          ${DI.map(x=>{
+            const hd=WD[x.w];
+            const cls=x.t==='sat'?'sat':x.t==='sun'||x.t==='holiday'?'sun':'';
+            return `<div class="mc-sum-hd ${cls}">${x.d}<br><span style="font-size:8px">${hd}</span></div>`;
+          }).join('')}
+        </div>
+        <div class="mc-sum-grid" style="margin-top:2px">
+          ${DI.map((x,i)=>{
+            const cls=snC(x.t);
+            return `<div class="mc-sum-cell ${cls}">${wCnt[i]}</div>`;
+          }).join('')}
+        </div>
+      </div>
+      ${emps.map((emp,i)=>{
+        const eid=+emp.id;
+        const seid=String(eid);
+        const eo=offs[seid]||{};
+        const ea=absMap[seid]||{};
+        const monthPrefix=dkey(y,m,1).slice(0,7);
+        const jd=emp.joinDate||'2026-04-01';
+        const cnt=Object.keys(eo).filter(k=>k.startsWith(monthPrefix)&&k>=jd).length;
+        const calHtml=DI.map(x=>{
+          const isPre=x.k<(emp.joinDate||'2026-04-01');
+          const hasOff=!isPre&&!!(eo[x.k]);
+          const absType=!isPre&&(ea[x.k]||'');
+          let cls='mc-day';
+          if(isPre){cls+=' s-pre';}
+          else{
+            if(x.t==='sat')cls+=' s-sat';
+            else if(x.t==='sun'||x.t==='holiday')cls+=' s-sun';
+            else if(x.t==='custom')cls+=' s-ch';
+            if(hasOff)cls+=' s-off';
+            else if(absType)cls+=' s-abs';
+          }
+          return `<div class="${cls}" ${isPre?'':' data-action="toggleOff" data-action2="openAbs"'} data-sid="${S.site}" data-eid="${eid}" data-key="${x.k}">${absType&&!hasOff?`<span style="font-size:9px;font-weight:700">${absType}</span>`:x.d}</div>`;
+        }).join('');
+        return `<div class="mc-card">
+          <div class="mc-card-hdr">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="mc-card-name" data-action="${!isPast?'openEditEmp':''}" data-sid="${S.site}" data-eid="${eid}">${emp.name}</span>
+              <span class="mc-card-dept">${emp.dept||''}</span>
+            </div>
+            <span class="mc-card-off-count">휴무 ${cnt}일</span>
+          </div>
+          <div class="mc-cal">
+            ${['일','월','화','수','목','금','토'].map((d,i)=>`<div class="mc-cal-hd${i===0?' sun':i===6?' sat':''}">${d}</div>`).join('')}
+            ${(()=>{
+              const firstDow=dow(y,m,1);
+              let cells=[];
+              for(let i=0;i<firstDow;i++) cells.push('<div></div>');
+              cells.push(...calHtml.split('</div>').filter(s=>s.trim()).map(s=>s+'</div>'));
+              return cells.join('');
+            })()}
+          </div>
+        </div>`;
+      }).join('')}
     </div>
 
     <div class="nb-wrap">
@@ -2403,8 +2541,8 @@ async function exportExcel(){
   if(_monthParam && /^\d{6}$/.test(_monthParam)){
     S.year  = +_monthParam.slice(0,4);
     S.month = +_monthParam.slice(4,6);
+    clampToMin();
   }
-  clampToMin();  // 최소 연월 제한 (URL 파라미터 유무와 관계없이)
   buildTabs();
   renderTable();
   startPolling();
@@ -2838,4 +2976,3 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 </script>
 </body>
 </html>
-
